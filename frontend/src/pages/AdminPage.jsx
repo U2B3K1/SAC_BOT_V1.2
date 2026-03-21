@@ -15,6 +15,7 @@ export default function AdminPage() {
     const [loading, setLoading] = useState(false)
     const [newUser, setNewUser] = useState({ telegram_id: '', full_name: '', phone: '', role: 'manager' })
     const [newProd, setNewProd] = useState({ name: '', sale_price: 0, department_id: '' })
+    const [newIng, setNewIng] = useState({ name: '', unit: '', cost_per_unit: 0 })
     const [departments, setDepartments] = useState([])
 
     useEffect(() => {
@@ -45,6 +46,12 @@ export default function AdminPage() {
     const createProduct = async () => {
         if (!newProd.name || !newProd.department_id) return toast.error("Ism va bo'lim kerak")
         try { await adminApi.createProduct({ ...newProd, sale_price: +newProd.sale_price }); toast.success('Mahsulot qo\'shildi'); setNewProd({ name: '', sale_price: 0, department_id: '' }); loadData() }
+        catch (e) { toast.error(e.response?.data?.detail || 'Xato') }
+    }
+
+    const createIngredient = async () => {
+        if (!newIng.name || !newIng.unit) return toast.error("Nomi va o'lchov birligi kerak")
+        try { await adminApi.createIngredient({ ...newIng, cost_per_unit: +newIng.cost_per_unit }); toast.success('Ingredient qo\'shildi'); setNewIng({ name: '', unit: '', cost_per_unit: 0 }); loadData() }
         catch (e) { toast.error(e.response?.data?.detail || 'Xato') }
     }
 
@@ -113,6 +120,13 @@ export default function AdminPage() {
             {/* INGREDIENTS */}
             {tab === 'ingredients' && !loading && (
                 <div>
+                    <div className="card">
+                        <div className="card-title" style={{ marginBottom: '12px' }}>Yangi Ingredient</div>
+                        <div className="form-group"><label className="form-label">Nomi</label><input type="text" className="form-input" value={newIng.name} onChange={e => setNewIng(p => ({ ...p, name: e.target.value }))} /></div>
+                        <div className="form-group"><label className="form-label">O'lchov birligi</label><input type="text" className="form-input" placeholder="masalan: kg, litr, dona" value={newIng.unit} onChange={e => setNewIng(p => ({ ...p, unit: e.target.value }))} /></div>
+                        <div className="form-group"><label className="form-label">1 {newIng.unit || 'birlik'} narxi (so'm)</label><input type="number" className="form-input" value={newIng.cost_per_unit} onChange={e => setNewIng(p => ({ ...p, cost_per_unit: e.target.value }))} /></div>
+                        <button className="btn btn-primary btn-full" onClick={createIngredient}><Plus size={14} /> Qo'shish</button>
+                    </div>
                     {ingredients.map(i => (
                         <div key={i.id} className="card" style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <div><div style={{ fontWeight: 600 }}>{i.name}</div><div className="text-muted" style={{ fontSize: '12px' }}>{i.unit} · {Number(i.cost_per_unit).toLocaleString()} so'm/{i.unit}</div></div>

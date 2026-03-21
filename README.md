@@ -129,3 +129,4 @@ npm run dev
 | Admin | `/api/v1/admin` | users, products, ingredients |
 
 Full dokumentatsiya: `http://localhost:8000/docs`
+"# SAC_BOT_V1.2" 

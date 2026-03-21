@@ -1,0 +1,156 @@
+/* =============================================
+   RESTORAN BOSHQARUV TIZIMI — GLOBAL STYLES
+   ============================================= */
+
+:root {
+  --primary: #1E3A5F;
+  --primary-light: #2E86C1;
+  --accent: #27AE60;
+  --danger: #C0392B;
+  --warning: #F39C12;
+  --bg: #0A1628;
+  --bg-card: #1A2744;
+  --bg-input: #243356;
+  --text: #E8EDF5;
+  --text-muted: #8FA0B8;
+  --border: #2D4270;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.3);
+  --transition: 0.2s ease;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+  font-size: 14px;
+}
+
+#root { max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+
+/* ---- BUTTONS ---- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 12px 20px; border-radius: var(--radius-sm);
+  font-size: 14px; font-weight: 600; border: none; cursor: pointer;
+  transition: var(--transition); text-decoration: none;
+}
+.btn-primary { background: var(--primary-light); color: white; }
+.btn-primary:hover { background: #1a6ea8; }
+.btn-success { background: var(--accent); color: white; }
+.btn-danger { background: var(--danger); color: white; }
+.btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--bg-card); }
+.btn-full { width: 100%; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---- CARDS ---- */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.card-title { font-size: 15px; font-weight: 600; color: var(--text); }
+
+/* ---- STAT CARDS ---- */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; text-align: center; }
+.stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.stat-value { font-size: 20px; font-weight: 700; }
+.stat-value.green { color: var(--accent); }
+.stat-value.red { color: var(--danger); }
+.stat-value.blue { color: var(--primary-light); }
+.stat-value.yellow { color: var(--warning); }
+
+/* ---- FORMS ---- */
+.form-group { margin-bottom: 14px; }
+.form-label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; }
+.form-input, .form-select, .form-textarea {
+  width: 100%; padding: 11px 14px; background: var(--bg-input);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text); font-size: 14px; font-family: inherit;
+  transition: var(--transition);
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none; border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(46,134,193,0.15);
+}
+.form-select option { background: var(--bg-card); }
+.form-textarea { resize: vertical; min-height: 80px; }
+
+/* ---- NAVIGATION ---- */
+.nav-bar {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px; background: var(--bg-card);
+  border-top: 1px solid var(--border); display: flex; justify-content: space-around;
+  padding: 8px 0 max(8px, env(safe-area-inset-bottom)); z-index: 100;
+}
+.nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  color: var(--text-muted); text-decoration: none; padding: 6px 12px;
+  border-radius: var(--radius-sm); transition: var(--transition); font-size: 10px;
+}
+.nav-item.active { color: var(--primary-light); }
+.nav-item svg { width: 22px; height: 22px; }
+
+/* ---- PAGE ---- */
+.page { flex: 1; padding: 16px 16px 80px; overflow-y: auto; }
+.page-header { margin-bottom: 20px; }
+.page-title { font-size: 22px; font-weight: 700; }
+.page-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+/* ---- TABLE ---- */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: var(--primary); color: white; padding: 10px 8px; text-align: left; font-weight: 600; }
+td { padding: 10px 8px; border-bottom: 1px solid var(--border); }
+tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+/* ---- STATUS BADGES ---- */
+.badge {
+  display: inline-flex; align-items: center; padding: 3px 9px;
+  border-radius: 20px; font-size: 11px; font-weight: 600;
+}
+.badge-draft { background: rgba(143,160,184,0.2); color: var(--text-muted); }
+.badge-submitted { background: rgba(243,156,18,0.2); color: var(--warning); }
+.badge-approved { background: rgba(39,174,96,0.2); color: var(--accent); }
+.badge-active { background: rgba(192,57,43,0.2); color: var(--danger); }
+.badge-paid { background: rgba(39,174,96,0.2); color: var(--accent); }
+
+/* ---- LOADERS ---- */
+.loader { display: flex; justify-content: center; padding: 40px; }
+.spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--primary-light); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- EMPTY STATE ---- */
+.empty-state { text-align: center; padding: 48px 24px; color: var(--text-muted); }
+.empty-state svg { width: 48px; height: 48px; margin: 0 auto 16px; opacity: 0.4; }
+
+/* ---- UPLOAD AREA ---- */
+.upload-area {
+  border: 2px dashed var(--border); border-radius: var(--radius);
+  padding: 32px; text-align: center; cursor: pointer;
+  transition: var(--transition);
+}
+.upload-area:hover { border-color: var(--primary-light); background: rgba(46,134,193,0.05); }
+.upload-icon { font-size: 40px; margin-bottom: 12px; }
+
+/* ---- COLORS ---- */
+.text-green { color: var(--accent); }
+.text-red { color: var(--danger); }
+.text-blue { color: var(--primary-light); }
+.text-muted { color: var(--text-muted); }
+.text-right { text-align: right; }
+.font-bold { font-weight: 700; }
+.font-mono { font-family: monospace; }
+.mb-4 { margin-bottom: 4px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-16 { margin-bottom: 16px; }

@@ -1,0 +1,88 @@
+import hashlib
+import hmac
+import json
+import time
+from datetime import datetime, timedelta
+from typing import Optional
+from urllib.parse import unquote
+
+from jose import JWTError, jwt
+
+from app.core.config import settings
+
+
+# =============================================
+# TELEGRAM initData TEKSHIRISH
+# =============================================
+
+def verify_telegram_init_data(init_data: str) -> Optional[dict]:
+    """
+    Telegram WebApp initData ni HMAC-SHA256 bilan tekshirish.
+    Haqiqiy bo'lsa user dict qaytaradi, aks holda None.
+    """
+    try:
+        params = dict(item.split("=", 1) for item in init_data.split("&") if "=" in item)
+        received_hash = params.pop("hash", None)
+        if not received_hash:
+            return None
+
+        # auth_date tekshirish (24 soatdan eski bo'lmasin)
+        auth_date = int(params.get("auth_date", 0))
+        if time.time() - auth_date > 86400:  # 24 soat
+            return None
+
+        # Data string yaratish
+        data_check_string = "\n".join(
+            f"{k}={v}" for k, v in sorted(params.items())
+        )
+
+        # HMAC hisoblash
+        secret_key = hmac.new(
+            b"WebAppData",
+            settings.TELEGRAM_BOT_TOKEN.encode(),
+            hashlib.sha256
+        ).digest()
+
+        calculated_hash = hmac.new(
+            secret_key,
+            data_check_string.encode(),
+            hashlib.sha256
+        ).hexdigest()
+
+        if not hmac.compare_digest(calculated_hash, received_hash):
+            return None
+
+        # User ma'lumotini parse qilish
+        user_data = params.get("user", "{}")
+        return json.loads(unquote(user_data))
+
+    except Exception:
+        return None
+
+
+# =============================================
+# JWT TOKEN YARATISH VA TEKSHIRISH
+# =============================================
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (
+        expires_delta or timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+    to_encode.update({"exp": expire, "type": "access"})
+    return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+
+def create_refresh_token(data: dict) -> str:
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp": expire, "type": "refresh"})
+    return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+
+def decode_token(token: str) -> Optional[dict]:
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        return payload
+    except JWTError:
+        return None

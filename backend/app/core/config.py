@@ -1,6 +1,15 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+class Settings(BaseSettings):
+    ENVIRONMENT: str = "development"
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore"
+    )
 
 class Settings(BaseSettings):
     # App

@@ -42,15 +42,15 @@ async def add_process_time_header(request: Request, call_next):
 # =============================================
 API_PREFIX = "/api/v1"
 
-app.include_router(auth.router, prefix=f"{API_PREFIX}/auth", tags=["auth"])
-app.include_router(admin.router, prefix=f"{API_PREFIX}/admin", tags=["admin"])
-app.include_router(reports.router, prefix=f"{API_PREFIX}/reports", tags=["reports"])
-app.include_router(sales.router, prefix=f"{API_PREFIX}/sales", tags=["sales"])
-app.include_router(expenses.router, prefix=f"{API_PREFIX}/expenses", tags=["expenses"])
-app.include_router(inventory.router, prefix=f"{API_PREFIX}/inventory", tags=["inventory"])
-app.include_router(debts.router, prefix=f"{API_PREFIX}/debts", tags=["debts"])
-app.include_router(ai.router, prefix=f"{API_PREFIX}/ai", tags=["ai"])
-app.include_router(export.router, prefix=f"{API_PREFIX}/export", tags=["export"])
+app.include_router(auth.router, prefix=API_PREFIX)
+app.include_router(admin.router, prefix=API_PREFIX)
+app.include_router(reports.router, prefix=API_PREFIX)
+app.include_router(sales.router, prefix=API_PREFIX)
+app.include_router(expenses.router, prefix=API_PREFIX)
+app.include_router(inventory.router, prefix=API_PREFIX)
+app.include_router(debts.router, prefix=API_PREFIX)
+app.include_router(ai.router, prefix=API_PREFIX)
+app.include_router(export.router, prefix=API_PREFIX)
 
 
 # =============================================

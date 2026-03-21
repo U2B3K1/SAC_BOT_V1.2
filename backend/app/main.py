@@ -6,13 +6,6 @@ import time
 from app.core.config import settings
 from app.api.v1 import auth, admin, reports, sales, expenses, inventory, debts, ai, export
 
-from fastapi import FastAPI
-
-app = FastAPI()
-
-@app.get("/")
-def root():
-    return {"status": "ok"}
 
 app = FastAPI(
     title=settings.APP_NAME,

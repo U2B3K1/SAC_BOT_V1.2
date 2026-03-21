@@ -21,19 +21,24 @@ def verify_telegram_init_data(init_data: str) -> Optional[dict]:
     Haqiqiy bo'lsa user dict qaytaradi, aks holda None.
     """
     try:
-        params = dict(item.split("=", 1) for item in init_data.split("&") if "=" in item)
-        received_hash = params.pop("hash", None)
+        from urllib.parse import parse_qsl
+        
+        # initData da %7B kabi URL-encoded belgilar bo'ladi.
+        # urllib.parse.parse_qsl ularni avtomatik decode qilib (oddiy matnga o'girib) key-value juftligini yaratadi!
+        parsed_data = dict(parse_qsl(init_data))
+        
+        received_hash = parsed_data.pop("hash", None)
         if not received_hash:
             return None
 
         # auth_date tekshirish (24 soatdan eski bo'lmasin)
-        auth_date = int(params.get("auth_date", 0))
+        auth_date = int(parsed_data.get("auth_date", 0))
         if time.time() - auth_date > 86400:  # 24 soat
             return None
 
-        # Data string yaratish
+        # Data string yaratish: decode qilingan qiymatlar bilan
         data_check_string = "\n".join(
-            f"{k}={v}" for k, v in sorted(params.items())
+            f"{k}={v}" for k, v in sorted(parsed_data.items())
         )
 
         # HMAC hisoblash
@@ -52,9 +57,9 @@ def verify_telegram_init_data(init_data: str) -> Optional[dict]:
         if not hmac.compare_digest(calculated_hash, received_hash):
             return None
 
-        # User ma'lumotini parse qilish
-        user_data = params.get("user", "{}")
-        return json.loads(unquote(user_data))
+        # User ma'lumotini parse qilish (parse_qsl orqali allaqachon '{' larga decode qilingan json olinadi)
+        user_data = parsed_data.get("user", "{}")
+        return json.loads(user_data)
 
     except Exception:
         return None

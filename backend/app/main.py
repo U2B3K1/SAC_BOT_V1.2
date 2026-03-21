@@ -114,6 +114,7 @@
 
 
 from fastapi import FastAPI
+from app.api.routes import router
 
 app = FastAPI(
     title="Restoran API",
@@ -124,5 +125,5 @@ app = FastAPI(
 def root():
     return {"status": "API ishlayapti 🚀"}
 
-# keyin routerlar shu yerga ulanadi
-# app.include_router(...)
+# 🔥 ENG MUHIM QATOR
+app.include_router(router, prefix="/api")

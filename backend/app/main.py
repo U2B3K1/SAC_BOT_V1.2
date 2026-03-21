@@ -115,12 +115,14 @@
 
 from fastapi import FastAPI
 
-app = FastAPI()
+app = FastAPI(
+    title="Restoran API",
+    version="1.0.0"
+)
 
 @app.get("/")
 def root():
-    return {"status": "ok"}
+    return {"status": "API ishlayapti 🚀"}
 
-@app.get("/test")
-def test():
-    return {"message": "working"}
+# keyin routerlar shu yerga ulanadi
+# app.include_router(...)

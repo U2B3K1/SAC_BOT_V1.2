@@ -1,17 +1,11 @@
-from pydantic_settings import BaseSettings
 from functools import lru_cache
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
+    # ENV
     ENVIRONMENT: str = "development"
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        extra="ignore"
-    )
-
-class Settings(BaseSettings):
     # App
     APP_NAME: str = "Restoran Boshqaruv Tizimi"
     DEBUG: bool = False
@@ -34,7 +28,7 @@ class Settings(BaseSettings):
     # OpenAI
     OPENAI_API_KEY: str = ""
 
-    # SMS - Eskiz.uz
+    # SMS
     ESKIZ_EMAIL: str = ""
     ESKIZ_PASSWORD: str = ""
     ESKIZ_SENDER_ID: str = "4546"
@@ -42,14 +36,14 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
 
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore"
+    )
+
     @property
     def allowed_origins_list(self) -> list[str]:
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",")]
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
-        extra = "ignore"
 
 
 @lru_cache()

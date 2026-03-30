@@ -101,23 +101,39 @@ async def calculate_theoretical_stock(as_of_date: date) -> list:
 
 async def _calculate_consumed(ingredient_id: str, as_of_date: date) -> Decimal:
     """Sotuvdan sarflangan miqdorni hisoblash (retsept asosida)"""
+    # Barcha retseptlarni bir marta olish (N+1 so'rov o'rniga)
+    recipes = db.table("recipes").select(
+        "id, product_id, recipe_ingredients(quantity)"
+    ).execute()
+
+    # product_id -> ingredient quantity mapping
+    product_ingredient_qty = {}
+    for recipe in recipes.data or []:
+        for ri in recipe.get("recipe_ingredients", []):
+            product_ingredient_qty[recipe["product_id"]] = Decimal(str(ri["quantity"]))
+
+    # Ingredient uchun retsept ingredientlarini filtrlash
+    recipe_ids = [r["id"] for r in recipes.data or []]
+    if recipe_ids:
+        recipe_ings = db.table("recipe_ingredients").select(
+            "quantity, recipe_id, recipes!inner(product_id)"
+        ).eq("ingredient_id", ingredient_id).execute()
+
+        product_ingredient_qty = {}
+        for ri in recipe_ings.data or []:
+            product_id = ri.get("recipes", {}).get("product_id")
+            if product_id:
+                product_ingredient_qty[product_id] = Decimal(str(ri["quantity"]))
+
+    # Sotuvlarni olish
     sales = db.table("sales").select(
         "quantity, product_id, daily_reports!inner(report_date)"
     ).lte("daily_reports.report_date", as_of_date.isoformat()).execute()
 
     total_consumed = Decimal("0")
-    for sale in sales.data:
-        recipe_ing = db.table("recipe_ingredients").select(
-            "quantity"
-        ).eq("ingredient_id", ingredient_id).eq(
-            "recipe_id",
-            db.table("recipes").select("id").eq("product_id", sale["product_id"]).execute().data[0]["id"]
-            if db.table("recipes").select("id").eq("product_id", sale["product_id"]).execute().data
-            else None
-        ).execute()
-
-        if recipe_ing.data:
-            qty_per_portion = Decimal(str(recipe_ing.data[0]["quantity"]))
+    for sale in sales.data or []:
+        qty_per_portion = product_ingredient_qty.get(sale["product_id"])
+        if qty_per_portion:
             total_consumed += qty_per_portion * Decimal(str(sale["quantity"]))
 
     return total_consumed

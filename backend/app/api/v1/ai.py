@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
 from typing import Optional
+from datetime import datetime, timezone
 import uuid
 import os
 from app.core.deps import CurrentUser
@@ -34,7 +35,7 @@ async def parse_screenshot_endpoint(
     file: UploadFile = File(...),
 ):
     """Screenshot yuklab AI bilan tahlil qilish"""
-    if not file.content_type.startswith("image/"):
+    if not (file.content_type or "").startswith("image/"):
         raise HTTPException(400, "Faqat rasm fayli qabul qilinadi")
 
     file_url = await _save_file_to_storage(file, "screenshots")
@@ -103,6 +104,7 @@ async def import_excel_endpoint(
         raise HTTPException(400, "Faqat Excel fayl (.xlsx, .xls) qabul qilinadi")
 
     content = await file.read()
+    await file.seek(0)
     file_url = await _save_file_to_storage(file, "excel")
 
     session = db.table("ai_parse_sessions").insert({
@@ -137,8 +139,6 @@ async def confirm_session(session_id: str, body: AIConfirmRequest, current_user:
     AI natijasini tasdiqlash — ma'lumotlarni DB ga yozish.
     confirmed_data ichida sotuvlar yoki xarajatlar bo'lishi kerak.
     """
-    from datetime import datetime
-
     session = db.table("ai_parse_sessions").select("*").eq("id", session_id).single().execute()
     if not session.data:
         raise HTTPException(404, "Session topilmadi")
@@ -189,7 +189,7 @@ async def confirm_session(session_id: str, body: AIConfirmRequest, current_user:
         "status": "confirmed",
         "parsed_data": confirmed_data,
         "confirmed_by": current_user["id"],
-        "confirmed_at": datetime.utcnow().isoformat(),
+        "confirmed_at": datetime.now(timezone.utc).isoformat(),
     }).eq("id", session_id).execute()
 
     return {"message": "Ma'lumotlar saqlandi", "session_id": session_id}

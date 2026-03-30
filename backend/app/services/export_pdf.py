@@ -40,7 +40,7 @@ async def generate_report_pdf(
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle("title", fontSize=16, fontName="Helvetica-Bold", textColor=DARK_BLUE, spaceAfter=6)
     h2_style = ParagraphStyle("h2", fontSize=12, fontName="Helvetica-Bold", textColor=BLUE, spaceAfter=4)
-    h3_style = ParagraphStyle("h3", fontSize=10, fontName="Helvetica-Bold", textColor=WHITE_COLOR(), spaceAfter=2)
+    h3_style = ParagraphStyle("h3", fontSize=10, fontName="Helvetica-Bold", textColor=colors.white, spaceAfter=2)
     normal = styles["Normal"]
 
     story = []
@@ -151,10 +151,6 @@ async def generate_report_pdf(
 
     doc.build(story)
     return buffer.getvalue()
-
-
-def WHITE_COLOR():
-    return colors.white
 
 
 def _table_style(header_color=None):

@@ -107,7 +107,6 @@ async def update_daily_report(report_id: str, body: DailyReportUpdate, current_u
 @router.post("/daily/{report_id}/submit")
 async def submit_report(report_id: str, current_user: CurrentUser):
     """Hisobotni tasdiqlash uchun yuborish"""
-    from datetime import datetime
     report = db.table("daily_reports").select("*").eq("id", report_id).single().execute()
     if not report.data:
         raise HTTPException(404, "Hisobot topilmadi")

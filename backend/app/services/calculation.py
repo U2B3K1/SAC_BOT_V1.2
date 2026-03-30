@@ -63,27 +63,53 @@ async def calculate_theoretical_stock(as_of_date: date) -> list:
     Boshlanish qoldig'i + kirimi - sotuvdan sarflash
     """
     ingredients = db.table("ingredients").select("id, name, unit").eq("is_active", True).execute()
-    result = []
 
+    # Barcha stock'larni bir marta olish (N+1 o'rniga)
+    all_stocks = db.table("inventory_stock").select("ingredient_id, quantity").execute()
+    stock_map = {s["ingredient_id"]: s["quantity"] for s in all_stocks.data or []}
+
+    # Barcha kirimlarni bir marta olish
+    all_receipts = db.table("inventory_receipt_items").select(
+        "ingredient_id, quantity, inventory_receipts!inner(receipt_date)"
+    ).lte("inventory_receipts.receipt_date", as_of_date.isoformat()).execute()
+    receipt_map = {}
+    for r in all_receipts.data or []:
+        receipt_map[r["ingredient_id"]] = receipt_map.get(r["ingredient_id"], 0) + r["quantity"]
+
+    # Barcha retsept-ingredient bog'lanishlarini bir marta olish
+    recipe_ings = db.table("recipe_ingredients").select(
+        "ingredient_id, quantity, recipes!inner(product_id)"
+    ).execute()
+    # ingredient_id -> {product_id: qty_per_portion}
+    ing_product_qty = {}
+    for ri in recipe_ings.data or []:
+        ing_id = ri["ingredient_id"]
+        product_id = ri.get("recipes", {}).get("product_id")
+        if product_id:
+            if ing_id not in ing_product_qty:
+                ing_product_qty[ing_id] = {}
+            ing_product_qty[ing_id][product_id] = Decimal(str(ri["quantity"]))
+
+    # Barcha sotuvlarni bir marta olish
+    all_sales = db.table("sales").select(
+        "quantity, product_id, daily_reports!inner(report_date)"
+    ).lte("daily_reports.report_date", as_of_date.isoformat()).execute()
+
+    result = []
     for ing in ingredients.data:
         ing_id = ing["id"]
+        actual_qty = stock_map.get(ing_id, 0)
+        total_received = receipt_map.get(ing_id, 0)
 
-        # Real qoldiq (inventory_stock dan)
-        stock = db.table("inventory_stock").select("quantity").eq("ingredient_id", ing_id).execute()
-        actual_qty = stock.data[0]["quantity"] if stock.data else 0
+        # Bu ingredient uchun sarflashni hisoblash
+        consumed = Decimal("0")
+        product_qty_map = ing_product_qty.get(ing_id, {})
+        for sale in all_sales.data or []:
+            qty_per_portion = product_qty_map.get(sale["product_id"])
+            if qty_per_portion:
+                consumed += qty_per_portion * Decimal(str(sale["quantity"]))
 
-        # Kirim (as_of_date gacha)
-        receipts = db.table("inventory_receipt_items").select(
-            "quantity, inventory_receipts!inner(receipt_date)"
-        ).eq("ingredient_id", ing_id).lte(
-            "inventory_receipts.receipt_date", as_of_date.isoformat()
-        ).execute()
-        total_received = sum(r["quantity"] for r in receipts.data)
-
-        # Sotuvdan sarflash (bu kun)
-        consumed = await _calculate_consumed(ing_id, as_of_date)
-
-        theoretical = actual_qty + total_received - consumed
+        theoretical = actual_qty + total_received - float(consumed)
 
         result.append({
             "ingredient_id": ing_id,

@@ -1,15 +1,14 @@
 import httpx
-import json
 from typing import Optional
 from app.core.config import settings
 
 _eskiz_token: Optional[str] = None
 
 
-async def _get_eskiz_token() -> str:
+async def _get_eskiz_token(force_refresh: bool = False) -> str:
     """Eskiz.uz dan token olish"""
     global _eskiz_token
-    if _eskiz_token:
+    if _eskiz_token and not force_refresh:
         return _eskiz_token
 
     async with httpx.AsyncClient() as client:
@@ -48,6 +47,19 @@ async def send_debt_reminder(phone: str, message: str) -> dict:
                     "callback_url": "",
                 }
             )
+            # Token muddati tugagan bo'lsa, yangilab qayta urinish
+            if response.status_code == 401:
+                token = await _get_eskiz_token(force_refresh=True)
+                response = await client.post(
+                    "https://notify.eskiz.uz/api/message/sms/send",
+                    headers={"Authorization": f"Bearer {token}"},
+                    data={
+                        "mobile_phone": clean_phone,
+                        "message": message,
+                        "from": settings.ESKIZ_SENDER_ID,
+                        "callback_url": "",
+                    }
+                )
         return response.json()
     except Exception as e:
         return {"status": "error", "reason": str(e)}

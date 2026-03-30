@@ -112,7 +112,7 @@ async def send_sms_reminder(debt_id: str, body: SMSRequest, current_user: Curren
 
 
 @router.patch("/{debt_id}")
-async def update_debt(debt_id: str, notes: Optional[str] = None, current_user: CurrentUser = None):
+async def update_debt(debt_id: str, current_user: CurrentUser, notes: Optional[str] = None):
     """Qarz eslatmasini yangilash"""
     if notes:
         result = db.table("debts").update({"notes": notes}).eq("id", debt_id).execute()

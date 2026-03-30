@@ -31,7 +31,6 @@ async def get_ingredient_stock(ingredient_id: str, current_user: CurrentUser):
 @router.patch("/stock")
 async def update_stock_actual(body: List[StockUpdateItem], current_user: CurrentUser):
     """Faktik qoldiqni kiritish (inventarizatsiya)"""
-    from datetime import datetime
     results = []
     for item in body:
         # Teorik qoldiqni olish

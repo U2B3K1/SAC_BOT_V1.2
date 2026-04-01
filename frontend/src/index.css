@@ -29,6 +29,7 @@ body {
   min-height: 100vh;
   -webkit-tap-highlight-color: transparent;
   font-size: 14px;
+  overscroll-behavior: none;
 }
 
 #root { max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
@@ -102,7 +103,7 @@ body {
 .nav-item svg { width: 22px; height: 22px; }
 
 /* ---- PAGE ---- */
-.page { flex: 1; padding: 16px 16px 80px; overflow-y: auto; }
+.page { flex: 1; padding: 16px 16px 80px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .page-header { margin-bottom: 20px; }
 .page-title { font-size: 22px; font-weight: 700; }
 .page-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; }

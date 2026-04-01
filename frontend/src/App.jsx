@@ -21,15 +21,31 @@ export default function App() {
     const { isAuthenticated } = useAuthStore()
 
     useEffect(() => {
-        // Telegram WebApp initialization
-        if (window.Telegram?.WebApp) {
-            window.Telegram.WebApp.ready()
-            window.Telegram.WebApp.expand()
-            document.documentElement.style.setProperty(
-                '--tg-viewport-height',
-                window.Telegram.WebApp.viewportHeight + 'px'
-            )
-        }
+        const initTelegram = () => {
+            const tg = window.Telegram?.WebApp;
+            if (tg) {
+                tg.ready();
+                tg.expand();
+
+                const updateHeight = () => {
+                    const height = tg.viewportStableHeight || tg.viewportHeight || window.innerHeight;
+                    document.documentElement.style.setProperty('--tg-viewport-height', `${height}px`);
+                };
+
+                updateHeight();
+                tg.onEvent('viewportChanged', updateHeight);
+
+                // Telefon qulflanib ochilganda yoki fondan qaytganda muzlashni oldini olish
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible') {
+                        tg.expand();
+                        updateHeight();
+                    }
+                });
+            }
+        };
+
+        initTelegram();
     }, [])
 
     return (

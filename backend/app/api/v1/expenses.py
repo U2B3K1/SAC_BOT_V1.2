@@ -9,7 +9,7 @@ db = get_supabase_admin()
 
 
 @router.get("/")
-async def list_expenses(
+def list_expenses(
     current_user: CurrentUser,
     daily_report_id: Optional[str] = None
 ):
@@ -26,7 +26,7 @@ async def list_expenses(
 
 
 @router.post("/", status_code=201)
-async def create_expense(body: ExpenseCreate, current_user: CurrentUser):
+def create_expense(body: ExpenseCreate, current_user: CurrentUser):
     """Xarajat kiritish"""
     report = db.table("daily_reports").select("id,status,created_by").eq(
         "id", body.daily_report_id
@@ -45,7 +45,7 @@ async def create_expense(body: ExpenseCreate, current_user: CurrentUser):
 
 
 @router.delete("/{expense_id}")
-async def delete_expense(expense_id: str, current_user: CurrentUser):
+def delete_expense(expense_id: str, current_user: CurrentUser):
     expense = db.table("expenses").select(
         "*, daily_reports(status, created_by)"
     ).eq("id", expense_id).single().execute()

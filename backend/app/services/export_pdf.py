@@ -20,7 +20,7 @@ LIGHT_GRAY = colors.HexColor("#F0F3F4")
 GREEN = colors.HexColor("#27AE60")
 
 
-async def generate_report_pdf(
+def generate_report_pdf(
     report_id: Optional[str] = None,
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,

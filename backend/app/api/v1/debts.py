@@ -12,7 +12,7 @@ db = get_supabase_admin()
 
 
 @router.get("/")
-async def list_debts(
+def list_debts(
     current_user: CurrentUser,
     status: Optional[str] = None,
     search: Optional[str] = None,
@@ -40,7 +40,7 @@ async def list_debts(
 
 
 @router.post("/", status_code=201)
-async def create_debt(body: DebtCreate, current_user: CurrentUser):
+def create_debt(body: DebtCreate, current_user: CurrentUser):
     """Yangi qarz yozish"""
     data = body.model_dump()
     data["debt_date"] = data["debt_date"].isoformat()
@@ -50,12 +50,12 @@ async def create_debt(body: DebtCreate, current_user: CurrentUser):
     data["created_by"] = current_user["id"]
 
     result = db.table("debts").insert(data).execute()
-    await log_audit(current_user["id"], "debts", result.data[0]["id"], "INSERT", None, result.data[0])
+    log_audit(current_user["id"], "debts", result.data[0]["id"], "INSERT", None, result.data[0])
     return result.data[0]
 
 
 @router.get("/{debt_id}")
-async def get_debt(debt_id: str, current_user: CurrentUser):
+def get_debt(debt_id: str, current_user: CurrentUser):
     result = db.table("debts").select(
         "*, debt_payments(amount, payment_date, notes, created_at)"
     ).eq("id", debt_id).single().execute()
@@ -65,7 +65,7 @@ async def get_debt(debt_id: str, current_user: CurrentUser):
 
 
 @router.post("/{debt_id}/payments", status_code=201)
-async def create_payment(debt_id: str, body: DebtPaymentCreate, current_user: CurrentUser):
+def create_payment(debt_id: str, body: DebtPaymentCreate, current_user: CurrentUser):
     """Qarz to'lovi kiritish"""
     debt = db.table("debts").select("*").eq("id", debt_id).single().execute()
     if not debt.data:
@@ -82,12 +82,12 @@ async def create_payment(debt_id: str, body: DebtPaymentCreate, current_user: Cu
 
     result = db.table("debt_payments").insert(data).execute()
     # Trigger avtomatik remaining_amount va status yangilaydi
-    await log_audit(current_user["id"], "debt_payments", result.data[0]["id"], "INSERT", None, result.data[0])
+    log_audit(current_user["id"], "debt_payments", result.data[0]["id"], "INSERT", None, result.data[0])
     return result.data[0]
 
 
 @router.post("/{debt_id}/sms")
-async def send_sms_reminder(debt_id: str, body: SMSRequest, current_user: CurrentUser):
+def send_sms_reminder(debt_id: str, body: SMSRequest, current_user: CurrentUser):
     """SMS eslatma yuborish"""
     debt = db.table("debts").select("*").eq("id", debt_id).single().execute()
     if not debt.data:
@@ -101,7 +101,7 @@ async def send_sms_reminder(debt_id: str, body: SMSRequest, current_user: Curren
         f"Iltimos, to'lovni amalga oshiring."
     )
 
-    result = await send_debt_reminder(debt.data["phone"], message)
+    result = send_debt_reminder(debt.data["phone"], message)
 
     # SMS hisoblagichni yangilash
     db.table("debts").update({
@@ -112,7 +112,7 @@ async def send_sms_reminder(debt_id: str, body: SMSRequest, current_user: Curren
 
 
 @router.patch("/{debt_id}")
-async def update_debt(debt_id: str, notes: Optional[str] = None, current_user: CurrentUser = None):
+def update_debt(debt_id: str, notes: Optional[str] = None, current_user: CurrentUser = None):
     """Qarz eslatmasini yangilash"""
     if notes:
         result = db.table("debts").update({"notes": notes}).eq("id", debt_id).execute()

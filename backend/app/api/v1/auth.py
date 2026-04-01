@@ -12,7 +12,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post("/telegram", response_model=TokenResponse)
-async def telegram_login(body: TelegramLoginRequest):
+def telegram_login(body: TelegramLoginRequest):
     """Telegram WebApp orqali tizimga kirish"""
     db = get_supabase_admin()
 
@@ -62,7 +62,7 @@ async def telegram_login(body: TelegramLoginRequest):
 
 
 @router.post("/refresh")
-async def refresh_token(body: RefreshRequest):
+def refresh_token(body: RefreshRequest):
     """Access token ni refresh token bilan yangilash"""
     payload = decode_token(body.refresh_token)
     if not payload or payload.get("type") != "refresh":
@@ -84,7 +84,7 @@ async def refresh_token(body: RefreshRequest):
 
 
 @router.get("/me")
-async def get_me_test(init_data: str):
+def get_me_test(init_data: str):
     """Test: Telegram init_data ni manual tekshirish"""
     user = verify_telegram_init_data(init_data)
     if not user:

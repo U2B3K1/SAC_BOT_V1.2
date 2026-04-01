@@ -13,16 +13,36 @@ db = get_supabase_admin()
 
 
 async def _save_file_to_storage(file: UploadFile, folder: str) -> str:
+    from fastapi.concurrency import run_in_threadpool
     """Faylni Supabase Storage'ga yuklash"""
     ext = os.path.splitext(file.filename)[1] if file.filename else ""
     filename = f"{folder}/{uuid.uuid4()}{ext}"
     content = await file.read()
 
-    db.storage.from_("uploads").upload(
-        path=filename,
-        file=content,
-        file_options={"content-type": file.content_type or "application/octet-stream"}
-    )
+    def sync_upload():
+        try:
+            db.storage.from_("uploads").upload(
+                path=filename,
+                file=content,
+                file_options={"content-type": file.content_type or "application/octet-stream"}
+            )
+        except Exception as e:
+            if "not found" in str(e).lower():
+                # Agar bucket yo'q bo'lsa, yaratamiz va qayta yuklaymiz
+                try:
+                    db.storage.create_bucket("uploads", name="uploads", options={"public": True})
+                    db.storage.from_("uploads").upload(
+                        path=filename,
+                        file=content,
+                        file_options={"content-type": file.content_type or "application/octet-stream"}
+                    )
+                except Exception:
+                    raise e
+            else:
+                raise e
+
+    await run_in_threadpool(sync_upload)
+
     file_url = f"{settings.SUPABASE_URL}/storage/v1/object/public/uploads/{filename}"
     return file_url
 
@@ -123,7 +143,7 @@ async def import_excel_endpoint(
 
 
 @router.get("/sessions/{session_id}")
-async def get_session(session_id: str, current_user: CurrentUser):
+def get_session(session_id: str, current_user: CurrentUser):
     """AI parsing natijasini olish"""
     result = db.table("ai_parse_sessions").select("*").eq("id", session_id).single().execute()
     if not result.data:
@@ -132,7 +152,7 @@ async def get_session(session_id: str, current_user: CurrentUser):
 
 
 @router.post("/sessions/{session_id}/confirm")
-async def confirm_session(session_id: str, body: AIConfirmRequest, current_user: CurrentUser):
+def confirm_session(session_id: str, body: AIConfirmRequest, current_user: CurrentUser):
     """
     AI natijasini tasdiqlash — ma'lumotlarni DB ga yozish.
     confirmed_data ichida sotuvlar yoki xarajatlar bo'lishi kerak.
@@ -153,7 +173,7 @@ async def confirm_session(session_id: str, body: AIConfirmRequest, current_user:
         from app.services.calculation import calculate_cost_per_portion
         items = []
         for s in confirmed_data["sales"]:
-            cost = await calculate_cost_per_portion(s["product_id"])
+            cost = calculate_cost_per_portion(s["product_id"])
             items.append({
                 "daily_report_id": daily_report_id,
                 "product_id": s["product_id"],
@@ -196,7 +216,7 @@ async def confirm_session(session_id: str, body: AIConfirmRequest, current_user:
 
 
 @router.post("/sessions/{session_id}/reject")
-async def reject_session(session_id: str, current_user: CurrentUser):
+def reject_session(session_id: str, current_user: CurrentUser):
     """AI natijasini rad etish"""
     db.table("ai_parse_sessions").update({
         "status": "rejected",

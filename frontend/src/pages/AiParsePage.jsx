@@ -17,9 +17,13 @@ export default function AiParsePage() {
         if (attempts > 30) { toast.error("Vaqt tugadi, qayta urinib ko'ring"); setPolling(false); return }
         try {
             const { data } = await aiApi.getSession(sessionId)
-            if (data.parsed_data && Object.keys(data.parsed_data).length > 0) {
+            if (data.status === 'completed' && data.parsed_data) {
                 setParsedData(data.parsed_data)
                 setPolling(false)
+            } else if (data.status === 'failed') {
+                toast.error(data.error_message || "Tahlil qilishda xatolik yuz berdi")
+                setPolling(false)
+                setSession(null)
             } else {
                 setTimeout(() => poll(sessionId, attempts + 1), 2000)
             }

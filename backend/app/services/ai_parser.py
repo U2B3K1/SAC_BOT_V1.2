@@ -2,14 +2,14 @@ import json
 import io
 import base64
 from typing import Optional
-from openai import AsyncOpenAI
+from openai import OpenAI
 from app.core.config import settings
 from app.core.database import get_supabase_admin
 import httpx
 import pandas as pd
 
 db = get_supabase_admin()
-client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
 
 def _get_products_context() -> str:
@@ -27,12 +27,12 @@ def _get_products_context() -> str:
     return "\n".join(lines) if lines else "Mahsulotlar kiritilmagan"
 
 
-async def parse_screenshot(session_id: str, file_url: str):
+def parse_screenshot(session_id: str, file_url: str):
     """GPT-4o Vision bilan screenshot tahlili"""
     try:
         # Rasmni URL dan yuklab olish
-        async with httpx.AsyncClient() as http:
-            img_response = await http.get(file_url)
+        with httpx.Client() as http:
+            img_response = http.get(file_url)
         img_bytes = img_response.content
         img_b64 = base64.b64encode(img_bytes).decode("utf-8")
 
@@ -58,7 +58,7 @@ QOIDALAR:
 3. Miqdor va narxlarni aniq o'qing
 4. Faqat JSON qaytaring, boshqa matn yo'q"""
 
-        response = await client.chat.completions.create(
+        response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {
@@ -83,32 +83,32 @@ QOIDALAR:
         parsed = json.loads(json_str)
 
         # Mahsulot ID larini topish
-        items_with_ids = await _match_product_names(parsed.get("items", []))
+        items_with_ids = _match_product_names(parsed.get("items", []))
         parsed["items"] = items_with_ids
 
         db.table("ai_parse_sessions").update({
-            "status": "pending",
+            "status": "completed",
             "raw_ai_output": {"raw": raw_output},
             "parsed_data": parsed,
         }).eq("id", session_id).execute()
 
     except Exception as e:
         db.table("ai_parse_sessions").update({
-            "status": "pending",
+            "status": "failed",
             "error_message": str(e),
             "parsed_data": {},
         }).eq("id", session_id).execute()
 
 
-async def parse_audio(session_id: str, file_url: str):
+def parse_audio(session_id: str, file_url: str):
     """OpenAI Whisper bilan audio transkripsiya"""
     try:
-        async with httpx.AsyncClient() as http:
-            audio_response = await http.get(file_url)
+        with httpx.Client() as http:
+            audio_response = http.get(file_url)
         audio_bytes = audio_response.content
 
         # Whisper bilan o'zbek tilida transkripsiya
-        transcript = await client.audio.transcriptions.create(
+        transcript = client.audio.transcriptions.create(
             model="whisper-1",
             file=("audio.ogg", io.BytesIO(audio_bytes), "audio/ogg"),
             language="uz",
@@ -131,7 +131,7 @@ Sotuv bo'lsa:
 
 Faqat JSON qaytaring."""
 
-        gpt_response = await client.chat.completions.create(
+        gpt_response = client.chat.completions.create(
             model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=500,
@@ -142,20 +142,20 @@ Faqat JSON qaytaring."""
         parsed["transcript"] = text
 
         db.table("ai_parse_sessions").update({
-            "status": "pending",
+            "status": "completed",
             "raw_ai_output": {"transcript": text, "raw": raw_output},
             "parsed_data": parsed,
         }).eq("id", session_id).execute()
 
     except Exception as e:
         db.table("ai_parse_sessions").update({
-            "status": "pending",
+            "status": "failed",
             "error_message": str(e),
             "parsed_data": {},
         }).eq("id", session_id).execute()
 
 
-async def parse_excel_file(session_id: str, file_content: bytes):
+def parse_excel_file(session_id: str, file_content: bytes):
     """pandas bilan Excel faylni tahlil qilish"""
     try:
         df = pd.read_excel(io.BytesIO(file_content))
@@ -196,24 +196,24 @@ async def parse_excel_file(session_id: str, file_content: bytes):
             }
             items.append(item)
 
-        items_with_ids = await _match_product_names(items)
+        items_with_ids = _match_product_names(items)
         parsed = {"items": items_with_ids, "total_rows": len(items)}
 
         db.table("ai_parse_sessions").update({
-            "status": "pending",
+            "status": "completed",
             "raw_ai_output": {"columns": list(df.columns), "rows": len(df)},
             "parsed_data": parsed,
         }).eq("id", session_id).execute()
 
     except Exception as e:
         db.table("ai_parse_sessions").update({
-            "status": "pending",
+            "status": "failed",
             "error_message": str(e),
             "parsed_data": {},
         }).eq("id", session_id).execute()
 
 
-async def _match_product_names(items: list) -> list:
+def _match_product_names(items: list) -> list:
     """Mahsulot nomlarini DB dagi nomlar bilan moslashtirish"""
     try:
         from rapidfuzz import process, fuzz
@@ -255,3 +255,4 @@ async def _match_product_names(items: list) -> list:
 
         enriched.append(item)
     return enriched
+

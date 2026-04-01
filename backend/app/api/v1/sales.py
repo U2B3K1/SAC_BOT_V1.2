@@ -11,7 +11,7 @@ db = get_supabase_admin()
 
 
 @router.get("/")
-async def list_sales(
+def list_sales(
     current_user: CurrentUser,
     daily_report_id: Optional[str] = None,
     product_id: Optional[str] = None
@@ -30,7 +30,7 @@ async def list_sales(
 
 
 @router.post("/", status_code=201)
-async def create_sale(body: SaleCreate, current_user: CurrentUser):
+def create_sale(body: SaleCreate, current_user: CurrentUser):
     """Bitta sotuv kiritish"""
     # Hisobotni tekshirish
     report = db.table("daily_reports").select("id, status, created_by").eq(
@@ -45,7 +45,7 @@ async def create_sale(body: SaleCreate, current_user: CurrentUser):
         raise HTTPException(403, "Ruxsat yo'q")
 
     # Tannarx hisoblash
-    cost_per_unit = await calculate_cost_per_portion(body.product_id)
+    cost_per_unit = calculate_cost_per_portion(body.product_id)
 
     data = body.model_dump()
     data["report_date"] = data.get("report_date")
@@ -54,12 +54,12 @@ async def create_sale(body: SaleCreate, current_user: CurrentUser):
     data["created_by"] = current_user["id"]
 
     result = db.table("sales").insert(data).execute()
-    await log_audit(current_user["id"], "sales", result.data[0]["id"], "INSERT", None, result.data[0])
+    log_audit(current_user["id"], "sales", result.data[0]["id"], "INSERT", None, result.data[0])
     return result.data[0]
 
 
 @router.post("/bulk", status_code=201)
-async def create_sales_bulk(body: SalesBulkCreate, current_user: CurrentUser):
+def create_sales_bulk(body: SalesBulkCreate, current_user: CurrentUser):
     """Ko'p sotuvni bir vaqtda kiritish (AI parse dan keyin)"""
     report = db.table("daily_reports").select("id, status, created_by").eq(
         "id", body.daily_report_id
@@ -72,7 +72,7 @@ async def create_sales_bulk(body: SalesBulkCreate, current_user: CurrentUser):
 
     items = []
     for item in body.items:
-        cost = await calculate_cost_per_portion(item.product_id)
+        cost = calculate_cost_per_portion(item.product_id)
         items.append({
             "daily_report_id": body.daily_report_id,
             "product_id": item.product_id,
@@ -90,7 +90,7 @@ async def create_sales_bulk(body: SalesBulkCreate, current_user: CurrentUser):
 
 
 @router.delete("/{sale_id}")
-async def delete_sale(sale_id: str, current_user: CurrentUser):
+def delete_sale(sale_id: str, current_user: CurrentUser):
     sale = db.table("sales").select("*, daily_reports(status, created_by)").eq(
         "id", sale_id
     ).single().execute()
@@ -105,5 +105,5 @@ async def delete_sale(sale_id: str, current_user: CurrentUser):
         raise HTTPException(403, "Ruxsat yo'q")
 
     db.table("sales").delete().eq("id", sale_id).execute()
-    await log_audit(current_user["id"], "sales", sale_id, "DELETE", sale.data, None)
+    log_audit(current_user["id"], "sales", sale_id, "DELETE", sale.data, None)
     return {"message": "Sotuv o'chirildi"}

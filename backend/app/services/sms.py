@@ -6,14 +6,14 @@ from app.core.config import settings
 _eskiz_token: Optional[str] = None
 
 
-async def _get_eskiz_token() -> str:
+def _get_eskiz_token() -> str:
     """Eskiz.uz dan token olish"""
     global _eskiz_token
     if _eskiz_token:
         return _eskiz_token
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
+    with httpx.Client() as client:
+        response = client.post(
             "https://notify.eskiz.uz/api/auth/login",
             data={"email": settings.ESKIZ_EMAIL, "password": settings.ESKIZ_PASSWORD}
         )
@@ -22,7 +22,7 @@ async def _get_eskiz_token() -> str:
         return _eskiz_token
 
 
-async def send_debt_reminder(phone: str, message: str) -> dict:
+def send_debt_reminder(phone: str, message: str) -> dict:
     """
     Eskiz.uz orqali SMS yuborish.
     Telefon formati: 998901234567 (+ belgisiz)
@@ -36,9 +36,9 @@ async def send_debt_reminder(phone: str, message: str) -> dict:
         clean_phone = "998" + clean_phone.lstrip("0")
 
     try:
-        token = await _get_eskiz_token()
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
+        token = _get_eskiz_token()
+        with httpx.Client() as client:
+            response = client.post(
                 "https://notify.eskiz.uz/api/message/sms/send",
                 headers={"Authorization": f"Bearer {token}"},
                 data={
@@ -53,10 +53,10 @@ async def send_debt_reminder(phone: str, message: str) -> dict:
         return {"status": "error", "reason": str(e)}
 
 
-async def send_bulk_sms(phones: list[str], message: str) -> list[dict]:
+def send_bulk_sms(phones: list[str], message: str) -> list[dict]:
     """Ko'p raqamga SMS yuborish"""
     results = []
     for phone in phones:
-        result = await send_debt_reminder(phone, message)
+        result = send_debt_reminder(phone, message)
         results.append({"phone": phone, **result})
     return results

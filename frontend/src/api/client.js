@@ -40,6 +40,11 @@ export const authApi = {
     refresh: (refresh_token) => api.post('/auth/refresh', { refresh_token }),
 }
 
+// DASHBOARD
+export const dashboardApi = {
+    stats: (params) => api.get('/dashboard/stats', { params }),
+}
+
 // REPORTS
 export const reportsApi = {
     list: (params) => api.get('/reports/daily', { params }),

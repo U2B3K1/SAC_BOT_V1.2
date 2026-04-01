@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 import time
 
 from app.core.config import settings
-from app.api.v1 import auth, admin, reports, sales, expenses, inventory, debts, ai, export
+from app.api.v1 import auth, admin, reports, sales, expenses, inventory, debts, ai, export, dashboard
 
 
 app = FastAPI(
@@ -43,6 +43,7 @@ async def add_process_time_header(request: Request, call_next):
 API_PREFIX = "/api/v1"
 
 app.include_router(auth.router, prefix=API_PREFIX)
+app.include_router(dashboard.router, prefix=API_PREFIX)
 app.include_router(admin.router, prefix=API_PREFIX)
 app.include_router(reports.router, prefix=API_PREFIX)
 app.include_router(sales.router, prefix=API_PREFIX)
@@ -57,7 +58,7 @@ app.include_router(export.router, prefix=API_PREFIX)
 # HEALTH CHECK
 # =============================================
 @app.get("/", tags=["Health"])
-async def root():
+def root():
     return {
         "status": "✅ Ishlayapti",
         "app": settings.APP_NAME,
@@ -67,7 +68,7 @@ async def root():
 
 
 @app.get("/health", tags=["Health"])
-async def health_check():
+def health_check():
     from app.core.database import get_supabase_admin
     try:
         db = get_supabase_admin()

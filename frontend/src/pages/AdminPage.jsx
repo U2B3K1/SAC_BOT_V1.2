@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { adminApi } from '../api/client'
-import { useAuthStore } from '../store'
+import { useAuthStore, useAppStore } from '../store'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Plus, LogOut } from 'lucide-react'
@@ -22,16 +22,33 @@ export default function AdminPage() {
     }, []) // ← Faqat birinchi yuklanishda (tab almashganda emas!)
 
     const loadData = async () => {
+        console.log("Loading Admin Data...")
         try {
-            // 4 ta so'rov parallel — bir vaqtda
-            const [u, p, i, d] = await Promise.all([
+            const [u, p, i, d] = await Promise.allSettled([
                 adminApi.users(),
                 adminApi.products(),
                 adminApi.ingredients(),
                 adminApi.departments()
             ])
-            setAdminData(u.data, p.data, i.data, d.data)
-        } finally { setLoading(false) }
+            
+            const userData = u.status === 'fulfilled' ? u.value.data : []
+            const prodData = p.status === 'fulfilled' ? p.value.data : []
+            const ingData = i.status === 'fulfilled' ? i.value.data : []
+            const deptData = d.status === 'fulfilled' ? d.value.data : []
+
+            if (u.status === 'rejected') console.error("Users API failure:", u.reason)
+            if (p.status === 'rejected') console.error("Products API failure:", p.reason)
+            if (i.status === 'rejected') console.error("Ingredients API failure:", i.reason)
+            if (d.status === 'rejected') console.error("Departments API failure:", d.reason)
+
+            setAdminData(userData, prodData, ingData, deptData)
+            console.log("Admin Data updated in store")
+        } catch (err) {
+            console.error("Admin loadData global error:", err)
+            toast.error("Ma'lumotlar yuklanishida xatolik")
+        } finally { 
+            setLoading(false) 
+        }
     }
 
     const createUser = async () => {

@@ -26,7 +26,7 @@ def _total_fill():
     return PatternFill("solid", fgColor="F0F3F4")
 
 
-async def generate_report_excel(
+def generate_report_excel(
     report_id: Optional[str] = None,
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,

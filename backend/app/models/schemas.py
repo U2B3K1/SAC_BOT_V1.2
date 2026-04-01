@@ -198,6 +198,7 @@ class StockUpdateItem(BaseModel):
 # DEBTS
 # =============================================
 class DebtCreate(BaseModel):
+    debt_type: str = "receive"  # "receive" (haqdorlik) yoki "pay" (qarzimiz)
     debtor_name: str
     organization: Optional[str] = None
     phone: Optional[str] = None

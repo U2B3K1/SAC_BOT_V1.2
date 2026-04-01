@@ -1,21 +1,53 @@
 from decimal import Decimal
 from typing import Optional
 from datetime import date
+import time
 from app.core.database import get_supabase_admin
 
 db = get_supabase_admin()
 
+# =============================================
+# Recipe cost cache (TTL: 5 daqiqa)
+# Bulk sales da bir xil mahsulot uchun
+# qayta-qayta DB query yuborishni oldini oladi
+# =============================================
+_recipe_cost_cache: dict[str, tuple[Decimal, float]] = {}
+_RECIPE_CACHE_TTL = 300  # 5 daqiqa
 
-async def calculate_cost_per_portion(product_id: str) -> Decimal:
+
+def _get_cached_cost(product_id: str) -> Decimal | None:
+    if product_id in _recipe_cost_cache:
+        cost, cached_at = _recipe_cost_cache[product_id]
+        if time.time() - cached_at < _RECIPE_CACHE_TTL:
+            return cost
+        del _recipe_cost_cache[product_id]
+    return None
+
+
+def invalidate_recipe_cache(product_id: str | None = None):
+    """Retsept o'zgarganda cache tozalash"""
+    if product_id:
+        _recipe_cost_cache.pop(product_id, None)
+    else:
+        _recipe_cost_cache.clear()
+
+
+def calculate_cost_per_portion(product_id: str) -> Decimal:
     """
     1 porsiya mahsulotning tannarxini hisoblash.
-    Retsept bo'yicha ingredientlar narxini yig'adi.
+    Cache bilan — bulk operatsiyalarda tezkor.
     """
+    # Cache dan tekshirish
+    cached = _get_cached_cost(product_id)
+    if cached is not None:
+        return cached
+
     recipe = db.table("recipes").select(
         "id, recipe_ingredients(quantity, ingredients(cost_per_unit))"
     ).eq("product_id", product_id).single().execute()
 
     if not recipe.data:
+        _recipe_cost_cache[product_id] = (Decimal("0"), time.time())
         return Decimal("0")
 
     total_cost = Decimal("0")
@@ -24,10 +56,12 @@ async def calculate_cost_per_portion(product_id: str) -> Decimal:
         cost = Decimal(str(ri["ingredients"]["cost_per_unit"]))
         total_cost += qty * cost
 
+    # Cache ga saqlash
+    _recipe_cost_cache[product_id] = (total_cost, time.time())
     return total_cost
 
 
-async def calculate_report_summary(report_id: str) -> dict:
+def calculate_report_summary(report_id: str) -> dict:
     """Hisobot yig'masini hisoblash"""
     report = db.table("daily_reports").select("*").eq("id", report_id).single().execute()
     if not report.data:
@@ -57,32 +91,69 @@ async def calculate_report_summary(report_id: str) -> dict:
     }
 
 
-async def calculate_theoretical_stock(as_of_date: date) -> list:
+def calculate_theoretical_stock(as_of_date: date) -> list:
     """
     Har bir ingredient uchun teorik qoldiqni hisoblash:
     Boshlanish qoldig'i + kirimi - sotuvdan sarflash
+    Barcha ma'lumotlar bitta/ikkita so'rovda RAMga yuklanib, shu yerda hisoblanadi (O(1) HTTP queries).
     """
-    ingredients = db.table("ingredients").select("id, name, unit").eq("is_active", True).execute()
+    date_str = as_of_date.isoformat()
+
+    # 1. Barcha aktiv ingredientlar
+    ingredients_resp = db.table("ingredients").select("id, name, unit").eq("is_active", True).execute()
+    ingredients = ingredients_resp.data
+
+    # 2. Joriy real qoldiq
+    stock_resp = db.table("inventory_stock").select("ingredient_id, quantity").execute()
+    stock_map = {item["ingredient_id"]: item["quantity"] for item in stock_resp.data}
+
+    # 3. Kirim qilingan barcha tovarlar (as_of_date gacha)
+    # Eslatma: Supabase 'inner' join lte bilan birga yaxshi ishlashi mumkin. Qiyinchilik tug'dirmasligi uchun hamma receiptni olamiz.
+    receipts_resp = db.table("inventory_receipt_items").select(
+        "ingredient_id, quantity, inventory_receipts!inner(receipt_date)"
+    ).lte("inventory_receipts.receipt_date", date_str).execute()
+    
+    received_map = {}
+    for r in receipts_resp.data:
+        iid = r["ingredient_id"]
+        qty = r.get("quantity", 0) or 0
+        received_map[iid] = received_map.get(iid, Decimal("0")) + Decimal(str(qty))
+
+    # 4. Sotuvlarni olish (as_of_date gacha)
+    sales_resp = db.table("sales").select(
+        "product_id, quantity, daily_reports!inner(report_date)"
+    ).lte("daily_reports.report_date", date_str).execute()
+
+    sales_map = {} # product_id -> sum of sales quantity
+    for s in sales_resp.data:
+        pid = s["product_id"]
+        sqty = s.get("quantity", 0) or 0
+        sales_map[pid] = sales_map.get(pid, Decimal("0")) + Decimal(str(sqty))
+
+    # 5. Barcha retseptlar va ularning ingredientlarini olish
+    recipes_resp = db.table("recipes").select("product_id, recipe_ingredients(ingredient_id, quantity)").execute()
+    # retsept bo'yicha ingredient sarfini xaritasi: ingredient_id -> sarflangan_miqdor
+    consumed_map = {}
+    for recipe in recipes_resp.data:
+        pid = recipe["product_id"]
+        if pid not in sales_map:
+            continue
+        
+        sold_qty = sales_map[pid] # bu maxsulotdan jami qancha porsiya sotilgan
+        for ri in recipe.get("recipe_ingredients", []):
+            iid = ri["ingredient_id"]
+            ri_qty = Decimal(str(ri.get("quantity", 0) or 0))
+            consumed_map[iid] = consumed_map.get(iid, Decimal("0")) + (sold_qty * ri_qty)
+
+    # Natijani shakllantiramiz
     result = []
-
-    for ing in ingredients.data:
+    for ing in ingredients:
         ing_id = ing["id"]
-
-        # Real qoldiq (inventory_stock dan)
-        stock = db.table("inventory_stock").select("quantity").eq("ingredient_id", ing_id).execute()
-        actual_qty = stock.data[0]["quantity"] if stock.data else 0
-
-        # Kirim (as_of_date gacha)
-        receipts = db.table("inventory_receipt_items").select(
-            "quantity, inventory_receipts!inner(receipt_date)"
-        ).eq("ingredient_id", ing_id).lte(
-            "inventory_receipts.receipt_date", as_of_date.isoformat()
-        ).execute()
-        total_received = sum(r["quantity"] for r in receipts.data)
-
-        # Sotuvdan sarflash (bu kun)
-        consumed = await _calculate_consumed(ing_id, as_of_date)
-
+        
+        actual_qty = Decimal(str(stock_map.get(ing_id, 0)))
+        total_received = received_map.get(ing_id, Decimal("0"))
+        consumed = consumed_map.get(ing_id, Decimal("0"))
+        
         theoretical = actual_qty + total_received - consumed
 
         result.append({
@@ -97,30 +168,6 @@ async def calculate_theoretical_stock(as_of_date: date) -> list:
         })
 
     return result
-
-
-async def _calculate_consumed(ingredient_id: str, as_of_date: date) -> Decimal:
-    """Sotuvdan sarflangan miqdorni hisoblash (retsept asosida)"""
-    sales = db.table("sales").select(
-        "quantity, product_id, daily_reports!inner(report_date)"
-    ).lte("daily_reports.report_date", as_of_date.isoformat()).execute()
-
-    total_consumed = Decimal("0")
-    for sale in sales.data:
-        recipe_ing = db.table("recipe_ingredients").select(
-            "quantity"
-        ).eq("ingredient_id", ingredient_id).eq(
-            "recipe_id",
-            db.table("recipes").select("id").eq("product_id", sale["product_id"]).execute().data[0]["id"]
-            if db.table("recipes").select("id").eq("product_id", sale["product_id"]).execute().data
-            else None
-        ).execute()
-
-        if recipe_ing.data:
-            qty_per_portion = Decimal(str(recipe_ing.data[0]["quantity"]))
-            total_consumed += qty_per_portion * Decimal(str(sale["quantity"]))
-
-    return total_consumed
 
 
 def calculate_beverage_percentage(department_revenues: dict) -> float:

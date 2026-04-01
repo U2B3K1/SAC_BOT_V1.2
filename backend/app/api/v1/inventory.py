@@ -10,7 +10,7 @@ db = get_supabase_admin()
 
 
 @router.get("/stock")
-async def get_current_stock(current_user: CurrentUser):
+def get_current_stock(current_user: CurrentUser):
     """Barcha ingredientlarning joriy qoldig'i"""
     result = db.table("inventory_stock").select(
         "*, ingredients(name, unit, cost_per_unit)"
@@ -19,7 +19,7 @@ async def get_current_stock(current_user: CurrentUser):
 
 
 @router.get("/stock/{ingredient_id}")
-async def get_ingredient_stock(ingredient_id: str, current_user: CurrentUser):
+def get_ingredient_stock(ingredient_id: str, current_user: CurrentUser):
     result = db.table("inventory_stock").select(
         "*, ingredients(name, unit)"
     ).eq("ingredient_id", ingredient_id).single().execute()
@@ -29,41 +29,58 @@ async def get_ingredient_stock(ingredient_id: str, current_user: CurrentUser):
 
 
 @router.patch("/stock")
-async def update_stock_actual(body: List[StockUpdateItem], current_user: CurrentUser):
-    """Faktik qoldiqni kiritish (inventarizatsiya)"""
+def update_stock_actual(body: List[StockUpdateItem], current_user: CurrentUser):
+    """Faktik qoldiqni kiritish (inventarizatsiya) - batch optimized"""
     from datetime import datetime
-    results = []
-    for item in body:
-        # Teorik qoldiqni olish
-        stock = db.table("inventory_stock").select("quantity").eq(
-            "ingredient_id", item.ingredient_id
-        ).execute()
-        theoretical = stock.data[0]["quantity"] if stock.data else 0
 
-        # inventory_adjustments ga yozish
-        adj = db.table("inventory_adjustments").insert({
+    if not body:
+        return {"updated": 0, "adjustments": []}
+
+    ingredient_ids = [item.ingredient_id for item in body]
+    now_str = datetime.utcnow().isoformat()
+    today_str = date.today().isoformat()
+
+    # 1-QUERY: Barcha ingredientlarning joriy stock'ini bir vaqtda olish
+    stocks_result = db.table("inventory_stock").select(
+        "ingredient_id, quantity"
+    ).in_("ingredient_id", ingredient_ids).execute()
+
+    # Stock'ni dict'ga o'girish (tez qidirish uchun)
+    stock_map = {s["ingredient_id"]: s["quantity"] for s in stocks_result.data}
+
+    # 2-QUERY: Barcha adjustmentlarni batch insert
+    adjustments_data = [
+        {
             "ingredient_id": item.ingredient_id,
-            "adj_date": date.today().isoformat(),
-            "theoretical_qty": float(theoretical),
+            "adj_date": today_str,
+            "theoretical_qty": float(stock_map.get(item.ingredient_id, 0)),
             "actual_qty": item.actual_qty,
             "reason": item.reason,
             "created_by": current_user["id"],
-        }).execute()
+        }
+        for item in body
+    ]
+    adj_result = db.table("inventory_adjustments").insert(adjustments_data).execute()
 
-        # Faktik qoldiqni stock'da yangilash
-        db.table("inventory_stock").upsert({
+    # 3-QUERY: Barcha stock'larni batch upsert
+    stock_updates = [
+        {
             "ingredient_id": item.ingredient_id,
             "quantity": item.actual_qty,
-            "last_counted_at": datetime.utcnow().isoformat(),
-            "last_updated_at": datetime.utcnow().isoformat(),
-        }, on_conflict="ingredient_id").execute()
+            "last_counted_at": now_str,
+            "last_updated_at": now_str,
+        }
+        for item in body
+    ]
+    db.table("inventory_stock").upsert(
+        stock_updates, on_conflict="ingredient_id"
+    ).execute()
 
-        results.append(adj.data[0])
-    return {"updated": len(results), "adjustments": results}
+    return {"updated": len(adj_result.data), "adjustments": adj_result.data}
 
 
 @router.post("/receipts", status_code=201)
-async def create_receipt(body: InventoryReceiptCreate, current_user: CurrentUser):
+def create_receipt(body: InventoryReceiptCreate, current_user: CurrentUser):
     """Yangi ombor kirimi"""
     receipt_data = {
         "receipt_date": body.receipt_date.isoformat(),
@@ -98,7 +115,7 @@ async def create_receipt(body: InventoryReceiptCreate, current_user: CurrentUser
 
 
 @router.get("/receipts")
-async def list_receipts(
+def list_receipts(
     current_user: CurrentUser,
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,
@@ -117,7 +134,7 @@ async def list_receipts(
 
 
 @router.get("/variance")
-async def get_stock_variance(current_user: CurrentUser):
+def get_stock_variance(current_user: CurrentUser):
     """Real vs teorik qoldiq farqi"""
     adjustments = db.table("inventory_adjustments").select(
         "*, ingredients(name, unit)"
@@ -133,8 +150,8 @@ async def get_stock_variance(current_user: CurrentUser):
 
 
 @router.get("/theoretical")
-async def get_theoretical_stock(current_user: CurrentUser, as_of_date: Optional[date] = None):
+def get_theoretical_stock(current_user: CurrentUser, as_of_date: Optional[date] = None):
     """Sotuv va kirimi asosida hisoblangan teorik qoldiq"""
     from app.services.calculation import calculate_theoretical_stock
-    result = await calculate_theoretical_stock(as_of_date or date.today())
+    result = calculate_theoretical_stock(as_of_date or date.today())
     return result

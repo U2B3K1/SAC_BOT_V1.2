@@ -21,13 +21,22 @@ export default function AdminPage() {
     useEffect(() => {
         if (user?.role !== 'super_user') { navigate('/'); return }
         loadData()
-    }, [tab])
+    }, []) // ← Faqat birinchi yuklanishda (tab almashganda emas!)
 
     const loadData = async () => {
         setLoading(true)
         try {
-            const [u, p, i, d] = await Promise.all([adminApi.users(), adminApi.products(), adminApi.ingredients(), adminApi.departments()])
-            setUsers(u.data); setProducts(p.data); setIngredients(i.data); setDepartments(d.data)
+            // 4 ta so'rov parallel — bir vaqtda
+            const [u, p, i, d] = await Promise.all([
+                adminApi.users(),
+                adminApi.products(),
+                adminApi.ingredients(),
+                adminApi.departments()
+            ])
+            setUsers(u.data)
+            setProducts(p.data)
+            setIngredients(i.data)
+            setDepartments(d.data)
         } finally { setLoading(false) }
     }
 

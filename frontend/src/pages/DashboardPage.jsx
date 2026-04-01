@@ -11,7 +11,7 @@ function fmt(n) { return Number(n || 0).toLocaleString('uz-UZ') }
 
 export default function DashboardPage() {
     const { user } = useAuthStore()
-    const { setDepartments, setProducts, setExpenseCategories } = useAppStore()
+    const { masterDataLoaded, setMasterData } = useAppStore()
     const navigate = useNavigate()
     const [summary, setSummary] = useState(null)
     const [reports, setReports] = useState([])
@@ -21,7 +21,10 @@ export default function DashboardPage() {
 
     useEffect(() => {
         loadData()
-        loadMasterData()
+        // Master data faqat birinchi marta yuklanadi
+        if (!masterDataLoaded) {
+            loadMasterData()
+        }
     }, [])
 
     const loadMasterData = async () => {
@@ -31,9 +34,7 @@ export default function DashboardPage() {
                 adminApi.products(),
                 adminApi.expenseCategories(),
             ])
-            setDepartments(depts.data)
-            setProducts(prods.data)
-            setExpenseCategories(cats.data)
+            setMasterData(depts.data, prods.data, cats.data)
         } catch { }
     }
 

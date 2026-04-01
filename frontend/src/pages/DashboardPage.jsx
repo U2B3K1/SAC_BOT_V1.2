@@ -11,16 +11,15 @@ function fmt(n) { return Number(n || 0).toLocaleString('uz-UZ') }
 
 export default function DashboardPage() {
     const { user } = useAuthStore()
-    const { masterDataLoaded, setMasterData, reports, setReportsCache } = useAppStore()
+    const { masterDataLoaded, setMasterData, reports, setReportsCache, dashboardSummary, dashboardSummaryLoaded, setDashboardSummaryCache } = useAppStore()
     const navigate = useNavigate()
-    const [summary, setSummary] = useState(null)
     const [loading, setLoading] = useState(false)
 
     const today = format(new Date(), 'yyyy-MM-dd')
 
     useEffect(() => {
         // Avval kirmagan bo'lsa zudlik bilan loader chiqaramiz, bo'lmasa eski xolat turadi
-        if (!summary) setLoading(true)
+        if (!dashboardSummaryLoaded) setLoading(true)
         loadData()
         if (!masterDataLoaded) loadMasterData()
     }, [])
@@ -42,7 +41,7 @@ export default function DashboardPage() {
                 reportsApi.summary(3),
                 reportsApi.list({ limit: 5 }),
             ])
-            setSummary(sum.data)
+            setDashboardSummaryCache(sum.data)
             setReportsCache(reps.data) // Store ga jo'natamiz
         } catch (e) {
             toast.error("Ma'lumotlarni yuklashda xato")
@@ -51,7 +50,7 @@ export default function DashboardPage() {
         }
     }
 
-    if (loading && !summary) return <div className="page"><div className="loader"><div className="spinner" /></div></div>
+    if (loading && !dashboardSummaryLoaded) return <div className="page"><div className="loader"><div className="spinner" /></div></div>
 
     const isSuperUser = user?.role === 'super_user'
 
@@ -71,7 +70,7 @@ export default function DashboardPage() {
             </div>
 
             {/* 3 kunlik yig'ma */}
-            {summary && (
+            {dashboardSummary && (
                 <>
                     <div style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                         So'nggi 3 kun
@@ -79,19 +78,19 @@ export default function DashboardPage() {
                     <div className="stat-grid">
                         <div className="stat-card">
                             <div className="stat-label">💰 Daromad</div>
-                            <div className="stat-value blue">{fmt(summary.total_revenue)}</div>
+                            <div className="stat-value blue">{fmt(dashboardSummary.total_revenue)}</div>
                         </div>
                         <div className="stat-card">
                             <div className="stat-label">✅ Sof Foyda</div>
-                            <div className="stat-value green">{fmt(summary.net_profit)}</div>
+                            <div className="stat-value green">{fmt(dashboardSummary.net_profit)}</div>
                         </div>
                         <div className="stat-card">
                             <div className="stat-label">📦 Tannarx</div>
-                            <div className="stat-value yellow">{fmt(summary.total_cost)}</div>
+                            <div className="stat-value yellow">{fmt(dashboardSummary.total_cost)}</div>
                         </div>
                         <div className="stat-card">
                             <div className="stat-label">💸 Xarajat</div>
-                            <div className="stat-value red">{fmt(summary.total_expenses)}</div>
+                            <div className="stat-value red">{fmt(dashboardSummary.total_expenses)}</div>
                         </div>
                     </div>
                 </>

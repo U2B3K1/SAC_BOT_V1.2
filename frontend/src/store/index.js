@@ -28,11 +28,13 @@ export const useAppStore = create((set, get) => ({
     reports: [],
     debts: [],
     inventory: [],
+    dashboardSummary: null,
     
     // Status flags
     reportsLoaded: false,
     debtsLoaded: false,
     inventoryLoaded: false,
+    dashboardSummaryLoaded: false,
 
     setDepartments: (d) => set({ departments: d }),
     setProducts: (p) => set({ products: p }),
@@ -48,10 +50,11 @@ export const useAppStore = create((set, get) => ({
     setReportsCache: (vals) => set({ reports: vals, reportsLoaded: true }),
     setDebtsCache: (vals) => set({ debts: vals, debtsLoaded: true }),
     setInventoryCache: (vals) => set({ inventory: vals, inventoryLoaded: true }),
+    setDashboardSummaryCache: (val) => set({ dashboardSummary: val, dashboardSummaryLoaded: true }),
 
     clearMasterData: () => set({
         departments: [], products: [], expenseCategories: [],
-        reports: [], debts: [], inventory: [],
-        masterDataLoaded: false, reportsLoaded: false, debtsLoaded: false, inventoryLoaded: false
+        reports: [], debts: [], inventory: [], dashboardSummary: null,
+        masterDataLoaded: false, reportsLoaded: false, debtsLoaded: false, inventoryLoaded: false, dashboardSummaryLoaded: false
     }),
 }))

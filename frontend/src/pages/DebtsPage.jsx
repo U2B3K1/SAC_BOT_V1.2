@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { debtsApi } from '../api/client'
+import { useAppStore } from '../store'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 import { Plus, MessageSquare } from 'lucide-react'
@@ -7,11 +8,11 @@ import { Plus, MessageSquare } from 'lucide-react'
 function fmt(n) { return Number(n || 0).toLocaleString('uz-UZ') }
 
 export default function DebtsPage() {
-    const [debts, setDebts] = useState([])
+    const { debts, debtsLoaded, setDebtsCache } = useAppStore()
     const [selected, setSelected] = useState(null)
     const [creating, setCreating] = useState(false)
     const [addingPayment, setAddingPayment] = useState(false)
-    const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(false)
     const [search, setSearch] = useState('')
     const [form, setForm] = useState({ debtor_name: '', organization: '', phone: '', initial_amount: 0, description: '', debt_date: format(new Date(), 'yyyy-MM-dd'), due_date: '' })
     const [payForm, setPayForm] = useState({ amount: 0, payment_date: format(new Date(), 'yyyy-MM-dd'), notes: '' })
@@ -19,8 +20,8 @@ export default function DebtsPage() {
     useEffect(() => { loadDebts() }, [])
 
     const loadDebts = async () => {
-        setLoading(true)
-        try { const { data } = await debtsApi.list(); setDebts(data) } finally { setLoading(false) }
+        if (!debtsLoaded) setLoading(true)
+        try { const { data } = await debtsApi.list(); setDebtsCache(data) } finally { setLoading(false) }
     }
 
     const loadDetail = async (id) => {

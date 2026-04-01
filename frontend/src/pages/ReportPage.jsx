@@ -8,8 +8,11 @@ import { Plus, Trash2 } from 'lucide-react'
 function fmt(n) { return Number(n || 0).toLocaleString('uz-UZ') }
 
 export default function ReportPage() {
-    const { departments, products, expenseCategories } = useAppStore()
-    const [reports, setReports] = useState([])
+    const { 
+        departments, products, expenseCategories,
+        reports, reportsLoaded, setReportsCache
+    } = useAppStore()
+    
     const [selected, setSelected] = useState(null) // tanlangan hisobot
     const [sales, setSales] = useState([])
     const [expenses, setExpenses] = useState([])
@@ -23,10 +26,11 @@ export default function ReportPage() {
     useEffect(() => { if (selected) loadDetail(selected) }, [selected])
 
     const loadReports = async () => {
-        setLoading(true)
+        // Faqat kesh bo'lmasa spinner chiqaramiz
+        if (!reportsLoaded) setLoading(true)
         try {
             const { data } = await reportsApi.list({ limit: 20 })
-            setReports(data)
+            setReportsCache(data) // store ga joylaymiz
         } finally { setLoading(false) }
     }
 
@@ -40,7 +44,7 @@ export default function ReportPage() {
         if (!form.department_id) return toast.error("Bo'lim tanlang")
         try {
             const { data } = await reportsApi.create(form)
-            setReports(prev => [data, ...prev])
+            setReportsCache([data, ...reports]) // keshni ham yangilaymiz
             setSelected(data.id)
             setCreating(false)
             toast.success('Hisobot yaratildi')

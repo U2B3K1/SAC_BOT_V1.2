@@ -18,16 +18,26 @@ export const useAuthStore = create((set) => ({
 }))
 
 export const useAppStore = create((set, get) => ({
+    // Master data
     departments: [],
     products: [],
     expenseCategories: [],
-    masterDataLoaded: false, // ← Cache flag
+    masterDataLoaded: false, 
+
+    // O'zgaruvchan List ma'lumotlari (Caching for fast navigation)
+    reports: [],
+    debts: [],
+    inventory: [],
+    
+    // Status flags
+    reportsLoaded: false,
+    debtsLoaded: false,
+    inventoryLoaded: false,
 
     setDepartments: (d) => set({ departments: d }),
     setProducts: (p) => set({ products: p }),
     setExpenseCategories: (c) => set({ expenseCategories: c }),
 
-    // Master data ni bir martalik yuklash
     setMasterData: (depts, prods, cats) => set({
         departments: depts,
         products: prods,
@@ -35,11 +45,13 @@ export const useAppStore = create((set, get) => ({
         masterDataLoaded: true,
     }),
 
-    // Logout da cache tozalash
+    setReportsCache: (vals) => set({ reports: vals, reportsLoaded: true }),
+    setDebtsCache: (vals) => set({ debts: vals, debtsLoaded: true }),
+    setInventoryCache: (vals) => set({ inventory: vals, inventoryLoaded: true }),
+
     clearMasterData: () => set({
-        departments: [],
-        products: [],
-        expenseCategories: [],
-        masterDataLoaded: false,
+        departments: [], products: [], expenseCategories: [],
+        reports: [], debts: [], inventory: [],
+        masterDataLoaded: false, reportsLoaded: false, debtsLoaded: false, inventoryLoaded: false
     }),
 }))

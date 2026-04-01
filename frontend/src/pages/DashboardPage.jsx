@@ -11,20 +11,18 @@ function fmt(n) { return Number(n || 0).toLocaleString('uz-UZ') }
 
 export default function DashboardPage() {
     const { user } = useAuthStore()
-    const { masterDataLoaded, setMasterData } = useAppStore()
+    const { masterDataLoaded, setMasterData, reports, setReportsCache } = useAppStore()
     const navigate = useNavigate()
     const [summary, setSummary] = useState(null)
-    const [reports, setReports] = useState([])
-    const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(false)
 
     const today = format(new Date(), 'yyyy-MM-dd')
 
     useEffect(() => {
+        // Avval kirmagan bo'lsa zudlik bilan loader chiqaramiz, bo'lmasa eski xolat turadi
+        if (!summary) setLoading(true)
         loadData()
-        // Master data faqat birinchi marta yuklanadi
-        if (!masterDataLoaded) {
-            loadMasterData()
-        }
+        if (!masterDataLoaded) loadMasterData()
     }, [])
 
     const loadMasterData = async () => {
@@ -45,7 +43,7 @@ export default function DashboardPage() {
                 reportsApi.list({ limit: 5 }),
             ])
             setSummary(sum.data)
-            setReports(reps.data)
+            setReportsCache(reps.data) // Store ga jo'natamiz
         } catch (e) {
             toast.error("Ma'lumotlarni yuklashda xato")
         } finally {
@@ -53,7 +51,7 @@ export default function DashboardPage() {
         }
     }
 
-    if (loading) return <div className="page"><div className="loader"><div className="spinner" /></div></div>
+    if (loading && !summary) return <div className="page"><div className="loader"><div className="spinner" /></div></div>
 
     const isSuperUser = user?.role === 'super_user'
 

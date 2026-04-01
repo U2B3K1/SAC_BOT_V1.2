@@ -1,29 +1,39 @@
 import React, { useEffect, useState } from 'react'
 import { inventoryApi, adminApi } from '../api/client'
+import { useAppStore } from '../store'
 import toast from 'react-hot-toast'
 import { Plus, RefreshCw } from 'lucide-react'
 
 function fmt(n) { return Number(n || 0).toFixed(2) }
 
 export default function InventoryPage() {
+    const { inventory, inventoryLoaded, setInventoryCache } = useAppStore()
+    const stock = inventory.stock || []
+    const variance = inventory.variance || []
+    const ingredients = inventory.ingredients || []
+
     const [tab, setTab] = useState('stock') // 'stock' | 'receipt' | 'variance'
-    const [stock, setStock] = useState([])
-    const [variance, setVariance] = useState([])
-    const [ingredients, setIngredients] = useState([])
     const [actual, setActual] = useState({}) // id -> qty
     const [loading, setLoading] = useState(false)
     const [receiptForm, setReceiptForm] = useState({ receipt_date: new Date().toISOString().slice(0, 10), supplier: '', items: [] })
     const [newItem, setNewItem] = useState({ ingredient_id: '', quantity: 0, unit: 'kg', unit_cost: 0 })
 
-    useEffect(() => { loadAll() }, [])
+    useEffect(() => { 
+        if (!inventoryLoaded) {
+            loadAll() 
+        } else {
+            const init = {}
+            ;(inventory.stock || []).forEach(i => { init[i.ingredient_id] = i.quantity })
+            setActual(init)
+        }
+    }, [])
 
     const loadAll = async () => {
-        setLoading(true)
+        if (!inventoryLoaded) setLoading(true)
         try {
             const [s, ing, v] = await Promise.all([inventoryApi.stock(), adminApi.ingredients(), inventoryApi.variance()])
-            setStock(s.data)
-            setIngredients(ing.data)
-            setVariance(v.data.adjustments || [])
+            setInventoryCache({ stock: s.data, ingredients: ing.data, variance: v.data.adjustments || [] })
+            
             const init = {}
             s.data.forEach(i => { init[i.ingredient_id] = i.quantity })
             setActual(init)

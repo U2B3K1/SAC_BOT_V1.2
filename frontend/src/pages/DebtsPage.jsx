@@ -3,7 +3,7 @@ import { debtsApi } from '../api/client'
 import { useAppStore } from '../store'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
-import { Plus, MessageSquare } from 'lucide-react'
+import { Plus, MessageSquare, Package } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 
 function fmt(n) { return Number(n || 0).toLocaleString('uz-UZ') }

@@ -7,24 +7,21 @@ import { Plus, LogOut } from 'lucide-react'
 
 export default function AdminPage() {
     const { user, logout } = useAuthStore()
+    const { adminUsers: users, adminIngredients: ingredients, products, departments, adminDataLoaded, setAdminData } = useAppStore()
     const navigate = useNavigate()
     const [tab, setTab] = useState('users')
-    const [users, setUsers] = useState([])
-    const [products, setProducts] = useState([])
-    const [ingredients, setIngredients] = useState([])
     const [loading, setLoading] = useState(false)
     const [newUser, setNewUser] = useState({ telegram_id: '', full_name: '', phone: '', role: 'manager' })
     const [newProd, setNewProd] = useState({ name: '', sale_price: 0, department_id: '' })
     const [newIng, setNewIng] = useState({ name: '', unit: '', cost_per_unit: 0 })
-    const [departments, setDepartments] = useState([])
 
     useEffect(() => {
         if (user?.role !== 'super_user') { navigate('/'); return }
+        if (!adminDataLoaded) setLoading(true)
         loadData()
     }, []) // ← Faqat birinchi yuklanishda (tab almashganda emas!)
 
     const loadData = async () => {
-        setLoading(true)
         try {
             // 4 ta so'rov parallel — bir vaqtda
             const [u, p, i, d] = await Promise.all([
@@ -33,10 +30,7 @@ export default function AdminPage() {
                 adminApi.ingredients(),
                 adminApi.departments()
             ])
-            setUsers(u.data)
-            setProducts(p.data)
-            setIngredients(i.data)
-            setDepartments(d.data)
+            setAdminData(u.data, p.data, i.data, d.data)
         } finally { setLoading(false) }
     }
 
@@ -80,10 +74,10 @@ export default function AdminPage() {
                 </div>
             </div>
 
-            {loading && <div className="loader"><div className="spinner" /></div>}
+            {loading && !adminDataLoaded && <div className="loader"><div className="spinner" /></div>}
 
             {/* USERS */}
-            {tab === 'users' && !loading && (
+            {tab === 'users' && (!loading || adminDataLoaded) && (
                 <div>
                     <div className="card">
                         <div className="card-title" style={{ marginBottom: '12px' }}>Yangi Foydalanuvchi</div>
@@ -108,7 +102,7 @@ export default function AdminPage() {
             )}
 
             {/* PRODUCTS */}
-            {tab === 'products' && !loading && (
+            {tab === 'products' && (!loading || adminDataLoaded) && (
                 <div>
                     <div className="card">
                         <div className="card-title" style={{ marginBottom: '12px' }}>Yangi Mahsulot</div>
@@ -127,7 +121,7 @@ export default function AdminPage() {
             )}
 
             {/* INGREDIENTS */}
-            {tab === 'ingredients' && !loading && (
+            {tab === 'ingredients' && (!loading || adminDataLoaded) && (
                 <div>
                     <div className="card">
                         <div className="card-title" style={{ marginBottom: '12px' }}>Yangi Ingredient</div>

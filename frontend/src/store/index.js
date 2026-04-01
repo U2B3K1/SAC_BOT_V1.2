@@ -24,6 +24,11 @@ export const useAppStore = create((set, get) => ({
     expenseCategories: [],
     masterDataLoaded: false, 
 
+    // Admin data
+    adminUsers: [],
+    adminIngredients: [],
+    adminDataLoaded: false,
+
     // O'zgaruvchan List ma'lumotlari (Caching for fast navigation)
     reports: [],
     debts: [],
@@ -52,9 +57,18 @@ export const useAppStore = create((set, get) => ({
     setInventoryCache: (vals) => set({ inventory: vals, inventoryLoaded: true }),
     setDashboardSummaryCache: (val) => set({ dashboardSummary: val, dashboardSummaryLoaded: true }),
 
+    setAdminData: (u, p, i, d) => set({
+        adminUsers: u,
+        products: p,
+        adminIngredients: i,
+        departments: d,
+        adminDataLoaded: true,
+    }),
+
     clearMasterData: () => set({
         departments: [], products: [], expenseCategories: [],
         reports: [], debts: [], inventory: [], dashboardSummary: null,
-        masterDataLoaded: false, reportsLoaded: false, debtsLoaded: false, inventoryLoaded: false, dashboardSummaryLoaded: false
+        adminUsers: [], adminIngredients: [],
+        masterDataLoaded: false, reportsLoaded: false, debtsLoaded: false, inventoryLoaded: false, dashboardSummaryLoaded: false, adminDataLoaded: false
     }),
 }))

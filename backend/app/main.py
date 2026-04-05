@@ -88,9 +88,13 @@ def health_check():
     except Exception as e:
         db_status = f"❌ Xato: {str(e)}"
 
+    # Telegram Token tekshiruvi (xavfsizlik uchun faqat true/false)
+    tg_token_status = "✅ O'rnatilgan" if settings.TELEGRAM_BOT_TOKEN else "❌ O'rnatilmagan"
+
     return {
         "status": "ok",
         "database": db_status,
+        "telegram_token": tg_token_status,
         "app": settings.APP_NAME,
     }
 

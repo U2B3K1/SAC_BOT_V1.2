@@ -1,31 +1,29 @@
-# 🧠 Project Memory: Restoran Boshqaruv Tizimi
+# 🧠 Project Memory: SAC_BOT_V1.2
 
-Ushbu fayl loyihaning joriy holati, muhim texnik qarorlar va kelajakdagi rejalarini saqlaydi.
+Ushbu fayl loyihaning joriy holati, muhim texnik qarorlar va o'zgarishlarni saqlaydi.
 
-## 📍 Joriy Holat (Current Status)
-- **Backend:** FastAPI + Supabase integratsiyasi tayyor.
-- **Frontend:** React + Zustand + Telegram Mini App (TMA) muhiti sozlangan.
-- **AI Tizimi:** Screenshot (Vision), Audio (Whisper) va Excel parsing modullari implementatsiya qilingan.
-- **Oxirgi Milestones:** 
-    - "Bizning qarz" (Debts) moduli integratsiyasi yakunlangan.
-    - Real-time dashboard va moliyaviy hisobotlar tahlili yo'lga qo'yilgan.
+## 📍 Joriy Holat (Current Status - 2026-04-06)
+- **Backend:** FastAPI + Supabase (PostgreSQL). Buxgalteriya va FIFO logikasi SQL qatlamiga (RPC) o'tkazildi.
+- **Frontend:** React + Zustand. Offline-first kesh tizimi joriy etildi.
+- **Security:** Telegram `initData` hmac-sha256 orqali qat'iy tekshiriladi.
+- **AI Tizimi:** Parsing natijalari avval `pending_actions` staging jadvaliga tushadi.
 
-## 🏗️ Arxitektura Qarorlari (Key Decisions)
-- **Database:** Supabase real-time va auth imkoniyatlari uchun tanlangan.
-- **AI Processing:** GPT-4o modelidan Vision va Strukturalash (json mode) uchun foydalaniladi.
-- **State Management:** Frontendda soddalik va tezlik uchun Zustand tanlangan.
-- **Sync Pattern:** AI Parsing natijalari avval foydalanuvchiga tasdiqlash uchun ko'rsatiladi ("Pending Approval"), so'ngra DB ga saqlanadi.
+## 🏗️ Muhim Texnik Qarorlar (Key Architecture Decisions)
+- **Double-Entry Accounting:** Har bir tranzaksiya `ledger_entries` jadvalida Debet/Kredit qoidasi bo'yicha aks etadi. Bu balansni 100% aniq saqlashga xizmat qiladi.
+- **FIFO Inventory:** Tovar tannarxi eng birinchi kirgan partiya narxidan kelib chiqib hisoblanadi (`inventory_batches`).
+- **Atomic Transactions:** Stok yangilanishi, qarz yaratish va ledger yozuvlari bitta SQL RPC (`process_sale_fifo`, `process_inventory_receipt`) ichida bajariladi.
+- **Offline Sync:** Internet uzilgan holatda foydalanuvchi amallari `useSyncStore` (Zustand + Persist) orqali saqlanadi va internet tiklanganda serverga yuboriladi.
 
-## 🛠️ Vazifalar (Open Tasks & Roadmap)
-- [ ] Tizim unumdorligini optimallashtirish (Optimization).
-- [ ] "Admin panel" orqali user rollarini boshqarishni kengaytirish.
-- [ ] Export (PDF/Excel) hisobotlarni yanada boyitish.
-- [ ] Ko'p bo'limli restoranlar uchun "Multi-branch" tizimini test qilish.
+## 🛠️ Amalga Oshirilgan Milestones (Senior Overhaul)
+- [x] **Database:** Ledger, Inventory Batches va Pending Actions jadvallari qo'shildi.
+- [x] **Backend:** Atomic RPC chaqiruvlari uchun API endpointlari yangilandi.
+- [x] **Security:** Telegram auth middleware (`validate_telegram_init`) integratsiya qilindi.
+- [x] **Sync:** Frontend uchun offline-first kesh tizimi yaratildi.
 
 ## 📝 Eslatmalar
-- Telegram ID orqali autentifikatsiya qat'iy nazoratda turishi shart.
-- `.env` faylidagi API keylar hecham commit qilinmasligi kerak.
-- Har bir yangi endpoint `/api/v1/` prefiksi bilan boshlanishi lozim.
+- Supabase'da yangi SQL migration (`migration_04`) albatta bajarilgan bo'lishi shart.
+- `requirements.txt` da `openpyxl` va `et-xmlfile` mavjudligiga ishonch hosil qiling (Excel export uchun).
+- Har doim `app.main:app` entry point sifatida ishlatiladi (Railway/Vercel uchun).
 
 ---
-*Oxirgi yangilanish: 2026-04-03*
+*Oxirgi yangilanish: 2026-04-06 (Senior Overhaul Phase)*

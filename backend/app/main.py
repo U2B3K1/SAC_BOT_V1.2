@@ -98,6 +98,21 @@ def health_check():
         "app": settings.APP_NAME,
     }
 
+@app.get("/debug/env", tags=["Health"])
+def debug_env():
+    """Railway o'zgaruvchilarini tekshirish (shifrlangan)"""
+    def mask(s: str):
+        if not s: return "❌ Yo'q"
+        return f"{s[:4]}...{s[-4:]}" if len(s) > 8 else "***"
+
+    return {
+        "supabase_url": mask(settings.SUPABASE_URL),
+        "telegram_token_present": bool(settings.TELEGRAM_BOT_TOKEN),
+        "telegram_token_masked": mask(settings.TELEGRAM_BOT_TOKEN),
+        "openai_key_present": bool(settings.OPENAI_API_KEY),
+        "allowed_origins": settings.ALLOWED_ORIGINS,
+    }
+
 
 # =============================================
 # XATOLIK ISHLOVCHILARI

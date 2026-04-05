@@ -1,11 +1,11 @@
 {
     "rewrites": [
         {
-            "source": "/api/(.*)",
-            "destination": "https://sacbotv12-production.up.railway.app/api/$1"
+            "source": "/api/v1/:path*",
+            "destination": "https://sacbotv12-production.up.railway.app/api/v1/:path*"
         },
         {
-            "source": "/(.*)",
+            "source": "/((?!api/).*)",
             "destination": "/index.html"
         }
     ]

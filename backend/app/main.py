@@ -25,6 +25,17 @@ app.add_middleware(
 )
 
 
+@app.on_event("startup")
+async def startup_event():
+    from app.core.database import get_supabase_admin
+    print("🚀 Server ishga tushmoqda...")
+    try:
+        db = get_supabase_admin()
+        db.table("departments").select("id").limit(1).execute()
+        print("✅ Supabase aloqasi muvaffaqiyatli o'rnatildi!")
+    except Exception as e:
+        print(f"❌ Supabase aloqasida xatolik: {str(e)}")
+
 # =============================================
 # MIDDLEWARE
 # =============================================

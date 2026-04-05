@@ -168,41 +168,16 @@ def confirm_session(session_id: str, body: AIConfirmRequest, current_user: Curre
     confirmed_data = body.confirmed_data
     daily_report_id = body.daily_report_id
 
-    # Agar sotuv ma'lumotlari bo'lsa
-    if "sales" in confirmed_data and daily_report_id:
-        from app.services.calculation import calculate_cost_per_portion
-        items = []
-        for s in confirmed_data["sales"]:
-            cost = calculate_cost_per_portion(s["product_id"])
-            items.append({
-                "daily_report_id": daily_report_id,
-                "product_id": s["product_id"],
-                "quantity": s["quantity"],
-                "unit_price": s["unit_price"],
-                "cost_per_unit": float(cost),
-                "total_cost": float(cost * s["quantity"]),
-                "input_method": session.data["session_type"],
-                "ai_session_id": session_id,
-                "created_by": current_user["id"],
-            })
-        if items:
-            db.table("sales").insert(items).execute()
-
-    # Agar xarajat bo'lsa
-    if "expenses" in confirmed_data and daily_report_id:
-        items = []
-        for e in confirmed_data["expenses"]:
-            items.append({
-                "daily_report_id": daily_report_id,
-                "category_id": e["category_id"],
-                "amount": e["amount"],
-                "description": e.get("description"),
-                "input_method": session.data["session_type"],
-                "ai_session_id": session_id,
-                "created_by": current_user["id"],
-            })
-        if items:
-            db.table("expenses").insert(items).execute()
+    # RPC orqali atomik saqlash (Double-Entry va FIFO)
+    if "items" in confirmed_data and daily_report_id:
+        for item in confirmed_data["items"]:
+            db.rpc("process_sale_fifo", {
+                "p_daily_report_id": daily_report_id,
+                "p_product_id": item["product_id"],
+                "p_quantity": item["quantity"],
+                "p_unit_price": item["unit_price"],
+                "p_created_by": current_user["id"]
+            }).execute()
 
     # Session ni tasdiqlash
     db.table("ai_parse_sessions").update({

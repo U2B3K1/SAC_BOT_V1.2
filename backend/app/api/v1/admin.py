@@ -22,7 +22,7 @@ db = get_supabase_admin()
 # =============================================
 @router.get("/users")
 def list_users(current_user: SuperUser):
-    result = db.table("users").select("*").order("created_at").execute()
+    result = db.table("users").select("*, departments(name, code)").order("created_at").execute()
     return result.data
 
 

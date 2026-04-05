@@ -45,7 +45,11 @@ def telegram_login(body: TelegramLoginRequest):
         )
 
     # Token yaratish
-    token_data = {"sub": user["id"], "role": user["role"]}
+    token_data = {
+        "sub": user["id"],
+        "role": user["role"],
+        "department_id": user.get("department_id")
+    }
     access_token = create_access_token(token_data)
     refresh_token = create_refresh_token(token_data)
 
@@ -57,6 +61,7 @@ def telegram_login(body: TelegramLoginRequest):
             "full_name": user["full_name"],
             "role": user["role"],
             "telegram_id": user["telegram_id"],
+            "department_id": user.get("department_id"),
         }
     )
 

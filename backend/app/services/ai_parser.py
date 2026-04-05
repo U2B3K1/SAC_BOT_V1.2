@@ -86,6 +86,13 @@ QOIDALAR:
         items_with_ids = _match_product_names(parsed.get("items", []))
         parsed["items"] = items_with_ids
 
+        # Pending action yaratish
+        db.table("pending_actions").insert({
+            "action_type": "sale",
+            "payload": parsed,
+            "status": "pending"
+        }).execute()
+
         db.table("ai_parse_sessions").update({
             "status": "completed",
             "raw_ai_output": {"raw": raw_output},
@@ -140,6 +147,13 @@ Faqat JSON qaytaring."""
         json_str = raw_output.strip().replace("```json", "").replace("```", "").strip()
         parsed = json.loads(json_str)
         parsed["transcript"] = text
+
+        # Pending action yaratish (Audio turiga qarab)
+        db.table("pending_actions").insert({
+            "action_type": parsed.get("type", "sale"),
+            "payload": parsed,
+            "status": "pending"
+        }).execute()
 
         db.table("ai_parse_sessions").update({
             "status": "completed",

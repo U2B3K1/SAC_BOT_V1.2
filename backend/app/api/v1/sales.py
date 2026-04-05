@@ -44,18 +44,20 @@ def create_sale(body: SaleCreate, current_user: CurrentUser):
     if current_user["role"] == "manager" and report.data["created_by"] != current_user["id"]:
         raise HTTPException(403, "Ruxsat yo'q")
 
-    # Tannarx hisoblash
-    cost_per_unit = calculate_cost_per_portion(body.product_id)
+    # FIFO va Ledger bilan atomik sotuv kiritish
+    result = db.rpc("process_sale_fifo", {
+        "p_daily_report_id": body.daily_report_id,
+        "p_product_id": body.product_id,
+        "p_quantity": body.quantity,
+        "p_unit_price": body.unit_price,
+        "p_created_by": current_user["id"]
+    }).execute()
 
-    data = body.model_dump()
-    data["report_date"] = data.get("report_date")
-    data["cost_per_unit"] = float(cost_per_unit)
-    data["total_cost"] = float(cost_per_unit * body.quantity)
-    data["created_by"] = current_user["id"]
-
-    result = db.table("sales").insert(data).execute()
-    log_audit(current_user["id"], "sales", result.data[0]["id"], "INSERT", None, result.data[0])
-    return result.data[0]
+    sale_id = result.data
+    new_sale = db.table("sales").select("*").eq("id", sale_id).single().execute()
+    
+    log_audit(current_user["id"], "sales", sale_id, "INSERT", None, new_sale.data)
+    return new_sale.data
 
 
 @router.post("/bulk", status_code=201)
@@ -70,23 +72,19 @@ def create_sales_bulk(body: SalesBulkCreate, current_user: CurrentUser):
     if report.data["status"] == "approved":
         raise HTTPException(400, "Tasdiqlangan hisobotga sotuv qo'shib bo'lmaydi")
 
-    items = []
+    inserted_ids = []
     for item in body.items:
-        cost = calculate_cost_per_portion(item.product_id)
-        items.append({
-            "daily_report_id": body.daily_report_id,
-            "product_id": item.product_id,
-            "quantity": item.quantity,
-            "unit_price": item.unit_price,
-            "cost_per_unit": float(cost),
-            "total_cost": float(cost * item.quantity),
-            "input_method": item.input_method,
-            "notes": item.notes,
-            "created_by": current_user["id"],
-        })
+        # FIFO va Ledger bilan atomik sotuv kiritish
+        res = db.rpc("process_sale_fifo", {
+            "p_daily_report_id": body.daily_report_id,
+            "p_product_id": item.product_id,
+            "p_quantity": item.quantity,
+            "p_unit_price": item.unit_price,
+            "p_created_by": current_user["id"]
+        }).execute()
+        inserted_ids.append(res.data)
 
-    result = db.table("sales").insert(items).execute()
-    return {"inserted": len(result.data), "items": result.data}
+    return {"inserted_count": len(inserted_ids), "ids": inserted_ids}
 
 
 @router.delete("/{sale_id}")

@@ -15,7 +15,7 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
-    user: dict
+    user: dict  # {id, full_name, role, telegram_id, department_id}
 
 
 class RefreshRequest(BaseModel):
@@ -30,11 +30,13 @@ class UserCreate(BaseModel):
     full_name: str
     phone: Optional[str] = None
     role: str = "manager"
+    department_id: Optional[str] = None
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     phone: Optional[str] = None
     role: Optional[str] = None
+    department_id: Optional[str] = None
     is_active: Optional[bool] = None
 
 
@@ -186,6 +188,7 @@ class InventoryReceiptCreate(BaseModel):
     department_id: Optional[str] = None
     supplier: Optional[str] = None
     notes: Optional[str] = None
+    is_paid: bool = True
     items: List[InventoryReceiptItemCreate]
 
 class StockUpdateItem(BaseModel):
@@ -225,6 +228,19 @@ class AIConfirmRequest(BaseModel):
     session_id: str
     confirmed_data: dict  # Tasdiqlangan yoki tahrir qilingan ma'lumot
     daily_report_id: Optional[str] = None
+
+
+# =============================================
+# PENDING ACTIONS
+# =============================================
+class PendingActionCreate(BaseModel):
+    action_type: str  # 'sale', 'receipt', 'expense', 'adjustment'
+    payload: dict
+    notes: Optional[str] = None
+
+class PendingActionConfirm(BaseModel):
+    id: UUID4
+    final_payload: Optional[dict] = None  # Foydalanuvchi tahrirlagan bo'lishi mumkin
 
 
 # =============================================

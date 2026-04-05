@@ -10,7 +10,7 @@ httpx==0.27.2
 python-multipart==0.0.9
 openpyxl==3.1.5
 reportlab==4.2.2
-pandas==2.2.2
+pandas>=2.2.2  # Python 3.13 uchun 3.0.x versiyasi mos keldi
 openai==1.45.0
 celery==5.4.0
 redis==5.0.8

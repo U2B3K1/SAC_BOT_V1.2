@@ -16,11 +16,12 @@ CREATE TABLE IF NOT EXISTS users (
     telegram_id BIGINT UNIQUE NOT NULL,
     full_name   TEXT NOT NULL,
     phone       TEXT,
-    role        TEXT NOT NULL DEFAULT 'manager' CHECK (role IN ('super_user', 'manager')),
-    is_active   BOOLEAN DEFAULT TRUE,
-    created_at  TIMESTAMPTZ DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ DEFAULT NOW(),
-    created_by  UUID REFERENCES users(id)
+    role          TEXT NOT NULL DEFAULT 'manager' CHECK (role IN ('super_user', 'manager')),
+    department_id UUID REFERENCES departments(id),
+    is_active     BOOLEAN DEFAULT TRUE,
+    created_at    TIMESTAMPTZ DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ DEFAULT NOW(),
+    created_by    UUID REFERENCES users(id)
 );
 
 -- BO'LIMLAR (DEPARTMENTLAR)
@@ -35,11 +36,11 @@ CREATE TABLE IF NOT EXISTS departments (
 
 -- Default departmentlar
 INSERT INTO departments (name, code, sort_order) VALUES
-    ('Kuxnya 1',    'K1',    1),
-    ('Kuxnya 2',    'K2',    2),
-    ('Salat',       'SAL',   3),
-    ('Ichimliklar', 'DRINK', 4),
-    ('Shashlik',    'SHASH', 5)
+    ('Salat mahsulotlari', 'SALAD', 1),
+    ('Go''sht mahsulotlari',    'MEAT',  2),
+    ('Ichimliklar',     'DRINK', 3),
+    ('Ko''mir',          'COAL',  4),
+    ('Shashlik',        'SHASH', 5)
 ON CONFLICT DO NOTHING;
 
 -- MAHSULOTLAR (TAOMLAR)

@@ -3,7 +3,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import time
 
-from app.core.security import decode_token
+from app.core.security import decode_token, verify_telegram_init_data
 from app.core.database import get_supabase_admin
 
 security = HTTPBearer()
@@ -66,7 +66,7 @@ async def get_current_user(
 
     # 2. Cache da yo'q — DB dan olish va cache ga saqlash
     db = get_supabase_admin()
-    result = db.table("users").select("*").eq("id", user_id).eq("is_active", True).single().execute()
+    result = db.table("users").select("id, telegram_id, full_name, role, department_id, is_active").eq("id", user_id).eq("is_active", True).single().execute()
     if not result.data:
         raise credentials_exception
 
@@ -92,6 +92,20 @@ def require_manager_or_above(current_user: Annotated[dict, Depends(get_current_u
             detail="Ruxsat yo'q"
         )
     return current_user
+
+
+def validate_telegram_init(init_data: str):
+    """
+    Telegram initData ni HMAC-SHA256 bilan qat'iy tekshirish.
+    Middleware sifatida ishlatiladi.
+    """
+    tg_user = verify_telegram_init_data(init_data)
+    if not tg_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Xavfsizlik tekshiruvi: Telegram ma'lumotlari haqiqiy emas"
+        )
+    return tg_user
 
 
 # Type aliases

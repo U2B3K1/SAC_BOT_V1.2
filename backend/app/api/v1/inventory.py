@@ -82,32 +82,18 @@ def update_stock_actual(body: List[StockUpdateItem], current_user: CurrentUser):
 @router.post("/receipts", status_code=201)
 def create_receipt(body: InventoryReceiptCreate, current_user: CurrentUser):
     """Yangi ombor kirimi"""
-    receipt_data = {
-        "receipt_date": body.receipt_date.isoformat(),
-        "department_id": body.department_id,
-        "supplier": body.supplier,
-        "notes": body.notes,
-        "created_by": current_user["id"],
-    }
-    # Jami summani hisoblash
-    total = sum(item.quantity * item.unit_cost for item in body.items)
-    receipt_data["total_amount"] = float(total)
+    items_data = [item.model_dump() for item in body.items]
+    
+    result = db.rpc("process_inventory_receipt", {
+        "p_receipt_date": body.receipt_date.isoformat(),
+        "p_department_id": body.department_id,
+        "p_supplier": body.supplier,
+        "p_items": items_data,
+        "p_is_paid": body.is_paid,
+        "p_created_by": current_user["id"]
+    }).execute()
 
-    receipt_result = db.table("inventory_receipts").insert(receipt_data).execute()
-    receipt_id = receipt_result.data[0]["id"]
-
-    # Itemlarni kiritish (trigger avtomatik stock yangilaydi)
-    items = [
-        {
-            "receipt_id": receipt_id,
-            "ingredient_id": item.ingredient_id,
-            "quantity": item.quantity,
-            "unit": item.unit,
-            "unit_cost": item.unit_cost,
-        }
-        for item in body.items
-    ]
-    db.table("inventory_receipt_items").insert(items).execute()
+    receipt_id = result.data
 
     return db.table("inventory_receipts").select(
         "*, inventory_receipt_items(*, ingredients(name, unit))"

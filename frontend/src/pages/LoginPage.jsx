@@ -87,6 +87,19 @@ export default function LoginPage() {
             <div style={{ marginTop: '48px', color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center' }}>
                 Kirish uchun Telegram hisobingiz<br />tizimga qo'shilgan bo'lishi kerak
             </div>
+
+            {/* RECOVERY DEBUG INFO */}
+            <div style={{
+                marginTop: '64px', 
+                padding: '8px 16px', 
+                borderRadius: '20px', 
+                background: 'rgba(255,255,255,0.05)', 
+                fontSize: '10px', 
+                color: '#4ade80',
+                border: '1px solid rgba(74, 222, 128, 0.2)'
+            }}>
+                📡 System: ONLINE • v2.0-RECOVERY
+            </div>
         </div>
     )
 }

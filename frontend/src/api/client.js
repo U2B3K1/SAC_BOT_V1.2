@@ -3,7 +3,8 @@ import axios from 'axios'
 const RAILWAY_URL = 'https://sacbotv12-production.up.railway.app/api/v1'
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || RAILWAY_URL,
+    // RECOVERY: Force connect to Railway
+    baseURL: RAILWAY_URL,
     timeout: 30000,
 })
 

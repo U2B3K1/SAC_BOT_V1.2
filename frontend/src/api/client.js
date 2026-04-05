@@ -1,7 +1,9 @@
 import axios from 'axios'
 
+const RAILWAY_URL = 'https://sacbotv12-production.up.railway.app/api/v1'
+
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || '/api/v1',
+    baseURL: import.meta.env.VITE_API_URL || RAILWAY_URL,
     timeout: 30000,
 })
 
@@ -20,7 +22,7 @@ api.interceptors.response.use(
             const refresh = localStorage.getItem('refresh_token')
             if (refresh) {
                 try {
-                    const { data } = await axios.post('/api/v1/auth/refresh', { refresh_token: refresh })
+                    const { data } = await axios.post(`${api.defaults.baseURL}/auth/refresh`, { refresh_token: refresh })
                     localStorage.setItem('access_token', data.access_token)
                     error.config.headers.Authorization = `Bearer ${data.access_token}`
                     return api(error.config)

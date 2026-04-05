@@ -73,7 +73,7 @@ def root():
     return {
         "status": "✅ Ishlayapti",
         "app": settings.APP_NAME,
-        "version": "1.0.0",
+        "version": "v1.1.2-DASHBOARD-FIX",
         "docs": "/docs",
     }
 
@@ -96,6 +96,7 @@ def health_check():
         "database": db_status,
         "telegram_token": tg_token_status,
         "app": settings.APP_NAME,
+        "version": "v1.1.2-DASHBOARD-FIX",
     }
 
 @app.get("/debug/env", tags=["Health"])

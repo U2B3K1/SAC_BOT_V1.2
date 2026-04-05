@@ -21,15 +21,21 @@ def dashboard_stats(
     """
     # 1. Jami qarz (Mijozlar qarzi) - debt_type = 'receive'
     def get_receive_debt():
-        res = db.table("debts").select("remaining_amount").eq("status", "active").eq("debt_type", "receive").execute()
-        res_part = db.table("debts").select("remaining_amount").eq("status", "partially_paid").eq("debt_type", "receive").execute()
-        return sum(d.get("remaining_amount", 0) for d in res.data + res_part.data)
+        try:
+            res = db.table("debts").select("remaining_amount").eq("status", "active").eq("debt_type", "receive").execute()
+            res_part = db.table("debts").select("remaining_amount").eq("status", "partially_paid").eq("debt_type", "receive").execute()
+            return sum(d.get("remaining_amount", 0) for d in res.data + res_part.data)
+        except Exception:
+            return 0
 
     # 2. Bizning qarz (Bizning ta'minotchilarga) - debt_type = 'pay'
     def get_pay_debt():
-        res = db.table("debts").select("remaining_amount").eq("status", "active").eq("debt_type", "pay").execute()
-        res_part = db.table("debts").select("remaining_amount").eq("status", "partially_paid").eq("debt_type", "pay").execute()
-        return sum(d.get("remaining_amount", 0) for d in res.data + res_part.data)
+        try:
+            res = db.table("debts").select("remaining_amount").eq("status", "active").eq("debt_type", "pay").execute()
+            res_part = db.table("debts").select("remaining_amount").eq("status", "partially_paid").eq("debt_type", "pay").execute()
+            return sum(d.get("remaining_amount", 0) for d in res.data + res_part.data)
+        except Exception:
+            return 0
 
     # 3. Ombor qoldig'i summasi
     # ingredientlardagi cost_per_unit va inventory_stock.quantity ni ko'paytiramiz
@@ -53,11 +59,14 @@ def dashboard_stats(
 
     # 4. Filter qilingan sanadagi Daromad (Revenue)
     def get_revenue():
-        q = db.table("daily_reports").select("total_revenue").eq("report_date", filter_date.isoformat())
-        if current_user["role"] == "manager":
-            q = q.eq("created_by", current_user["id"])
-        res = q.execute()
-        return sum(d.get("total_revenue", 0) or 0 for d in res.data)
+        try:
+            q = db.table("daily_reports").select("total_revenue").eq("report_date", filter_date.isoformat())
+            if current_user["role"] == "manager":
+                q = q.eq("created_by", current_user["id"])
+            res = q.execute()
+            return sum(d.get("total_revenue", 0) or 0 for d in res.data)
+        except Exception:
+            return 0
 
     with ThreadPoolExecutor(max_workers=4) as executor:
         f1 = executor.submit(get_receive_debt)
